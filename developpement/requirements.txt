@@ -32,6 +32,7 @@ alembic==1.12.0          # Database migrations
 pytest==7.4.3            # Testing framework
 black==23.10.0           # Code formatting
 flake8==6.0.0            # Linting
+python-dotenv==1.0.1     # Load environment variables from .env files
 
 # ==============================================
 # DATABASE DEPENDENCIES
