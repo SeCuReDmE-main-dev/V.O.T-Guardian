@@ -21,6 +21,21 @@ from datetime import datetime
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 try:
+    # Load environment variables from a local .env if present
+    from dotenv import load_dotenv, find_dotenv  # type: ignore
+    _dotenv_path = find_dotenv()
+    if _dotenv_path:
+        load_dotenv(_dotenv_path)
+    else:
+        # Fallback: try project-specific path (developpement/.env)
+        _here = os.path.dirname(os.path.abspath(__file__))
+        _proj_env = os.path.normpath(os.path.join(_here, '..', '..', '.env'))
+        if os.path.exists(_proj_env):
+            load_dotenv(_proj_env)
+except Exception:
+    # python-dotenv not installed or other issue; continue without it
+    pass
+try:
     # Direct E2B SDK import for one-off sandboxes with internet access
     from e2b_code_interpreter import Sandbox as E2BSandbox
 except Exception:  # pragma: no cover
@@ -256,8 +271,9 @@ def analyze_mock():
 
 
 if __name__ == '__main__':
+    # Reuse validated settings for host/port
     app.run(
-        host=os.getenv('API_HOST', '0.0.0.0'),
-        port=int(os.getenv('API_PORT', 8080)),
+        host=settings.api_host,
+        port=settings.api_port,
         debug=os.getenv('FLASK_DEBUG', 'false').lower() == 'true'
     )
