@@ -1,0 +1,32 @@
+# Ultra-minimal template to stay under 1h build: Python 3.10.11 + Torch CPU 2.1.0 + NumPy 1.26.4
+FROM python:3.10.11-slim-bullseye
+
+ENV LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_ROOT_USER_ACTION=ignore
+
+USER root
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    gcc \
+    g++ \
+    git \
+    curl \
+    libffi-dev \
+    python3-dev \
+    pkg-config \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /opt/vot-guardian
+
+# Harden pip/setuptools/wheel; install Torch CPU and NumPy pins
+RUN python -m ensurepip --upgrade || true && \
+    python -m pip install --no-cache-dir --ignore-installed "pip<25" "setuptools>=68" "wheel>=0.41" && \
+    python -m pip install --no-cache-dir torch==2.1.0 --index-url https://download.pytorch.org/whl/cpu && \
+    python -m pip install --no-cache-dir numpy==1.26.4
+
+USER user

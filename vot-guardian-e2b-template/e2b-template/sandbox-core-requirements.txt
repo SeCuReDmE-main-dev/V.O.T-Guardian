@@ -1,0 +1,3 @@
+librosa==0.10.1
+# mindsdb-sdk pulls modern OpenAI/httpx trees that conflict with mindsdb server pins.
+# Keep the template lean and client-agnostic; install mindsdb-sdk at runtime if needed.

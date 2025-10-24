@@ -1,0 +1,24 @@
+FROM python:3.10.11-slim-bullseye AS builder
+
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_NO_CACHE_DIR=1 \
+    DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential gcc g++ git curl libffi-dev python3-dev pkg-config ca-certificates \
+    libsndfile1 \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /opt/vot-guardian
+
+RUN python -m ensurepip --upgrade || true \
+    && python -m pip install --no-cache-dir --ignore-installed "pip<25" "setuptools>=68" "wheel>=0.41" \
+    && python -m pip install --no-cache-dir torch==2.1.0 --index-url https://download.pytorch.org/whl/cpu \
+    && python -m pip install --no-cache-dir numpy==1.26.4 librosa==0.10.1
+
+#
+# Create non-root user (E2B best practice)
+#
+RUN id -u user >/dev/null 2>&1 || useradd -m -u 1000 user
+USER user
+WORKDIR /home/user

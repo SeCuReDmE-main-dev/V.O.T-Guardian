@@ -1,0 +1,2 @@
+librosa==0.10.1
+mindsdb_sdk==2.0.0
