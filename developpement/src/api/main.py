@@ -169,7 +169,12 @@ def analyze_audio():
                 install_res = await asyncio.get_event_loop().run_in_executor(
                     None, lambda: sandbox.run_code(install_code)
                 )
-                install_out = (getattr(install_res, 'text', '') or '').strip()
+                # Prefer captured stdout logs for print output
+                _ilog = getattr(install_res, 'logs', None)
+                if _ilog and getattr(_ilog, 'stdout', None):
+                    install_out = "\n".join(_ilog.stdout)
+                else:
+                    install_out = (getattr(install_res, 'text', '') or '').strip()
 
                 # 2) Execute probe script inside sandbox
                 probe_code = (
@@ -191,7 +196,11 @@ def analyze_audio():
                 probe_res = await asyncio.get_event_loop().run_in_executor(
                     None, lambda: sandbox.run_code(probe_code)
                 )
-                probe_out = (getattr(probe_res, 'text', '') or '').strip()
+                _plog = getattr(probe_res, 'logs', None)
+                if _plog and getattr(_plog, 'stdout', None):
+                    probe_out = "\n".join(_plog.stdout)
+                else:
+                    probe_out = (getattr(probe_res, 'text', '') or '').strip()
 
                 return {"install_stdout": install_out, "stdout": probe_out}
             except Exception as se:  # pragma: no cover
