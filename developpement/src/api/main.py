@@ -20,6 +20,11 @@ import logging
 from datetime import datetime
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+try:
+    # Direct E2B SDK import for one-off sandboxes with internet access
+    from e2b_code_interpreter import Sandbox as E2BSandbox
+except Exception:  # pragma: no cover
+    E2BSandbox = None
 from werkzeug.exceptions import BadRequest
 
 # Import core modules
@@ -105,39 +110,92 @@ def analyze_audio():
         audio_file = request.files['audio']
         audio_bytes = audio_file.read()
 
-        async def _sandbox_receive_file(data: bytes) -> str:
+        async def _sandbox_mindsdb_probe(data: bytes) -> dict:
+            """
+            Create a fresh sandbox with internet,
+            pip install deps, run probe script, return outputs.
+            """
+            if E2BSandbox is None:
+                return {
+                    "stdout": "E2B SDK not available",
+                    "install_stdout": "",
+                    "error": "E2B SDK missing",
+                }
+
+            # Allow internet and extend timeout to handle pip installs
+            sandbox = None
             try:
-                async with e2b_manager.get_sandbox() as sandbox:
-                    # Write file into sandbox FS
-                    await asyncio.get_event_loop().run_in_executor(
-                        None,
-                        lambda: sandbox.files.write('input_audio.bin', data)
-                    )
+                sandbox = E2BSandbox.create(
+                    api_key=e2b_manager.config.api_key,
+                    allow_internet_access=True,
+                    timeout=max(300, e2b_manager.config.sandbox_timeout),
+                )
 
-                    # Simple confirmation script
-                    code = (
-                        "with open('input_audio.bin','rb') as f:\n"
-                        "    b = f.read()\n"
-                        "print(f'Fichier reçu avec la taille {len(b)}')\n"
-                    )
+                # Write file into sandbox FS
+                await asyncio.get_event_loop().run_in_executor(
+                    None,
+                    lambda: sandbox.files.write('input_audio.bin', data)
+                )
 
-                    result = await asyncio.get_event_loop().run_in_executor(
-                        None, lambda: sandbox.run_code(code)
-                    )
+                # 1) Install dependencies inside the sandbox
+                install_code = (
+                    "import sys, subprocess\n"
+                    "pkgs = ['mindsdb', 'librosa', 'torch']\n"
+                    "print('Installing packages:', pkgs)\n"
+                    "proc = subprocess.run([sys.executable, '-m', 'pip', 'install', "
+                    "*pkgs], capture_output=True, text=True)\n"
+                    "print('pip returncode:', proc.returncode)\n"
+                    "print('--- pip stdout ---')\n"
+                    "print(proc.stdout)\n"
+                    "print('--- pip stderr ---')\n"
+                    "print(proc.stderr)\n"
+                )
+                install_res = await asyncio.get_event_loop().run_in_executor(
+                    None, lambda: sandbox.run_code(install_code)
+                )
+                install_out = (getattr(install_res, 'text', '') or '').strip()
 
-                    return (result.text or '').strip()
-            except Exception as se:
-                logger.error(f"Sandbox error: {se}")
-                return f"Sandbox error: {se}"
+                # 2) Execute probe script inside sandbox
+                probe_code = (
+                    "print('Importing libraries...')\n"
+                    "import importlib\n"
+                    "for m in ['mindsdb', 'librosa', 'torch']:\n"
+                    "    try:\n"
+                    "        importlib.import_module(m)\n"
+                    "        print(f'Imported {m}')\n"
+                    "    except Exception as e:\n"
+                    "        print(f'Failed to import {m}: {e}')\n"
+                    "print('Reading input file...')\n"
+                    "with open('input_audio.bin','rb') as f:\n"
+                    "    audio_bytes = f.read()\n"
+                    "print(f'Audio size: {len(audio_bytes)} bytes')\n"
+                    "print('Connexion à MindsDB...')\n"
+                    "print('OK: Simulation de connexion effectuée.')\n"
+                )
+                probe_res = await asyncio.get_event_loop().run_in_executor(
+                    None, lambda: sandbox.run_code(probe_code)
+                )
+                probe_out = (getattr(probe_res, 'text', '') or '').strip()
+
+                return {"install_stdout": install_out, "stdout": probe_out}
+            except Exception as se:  # pragma: no cover
+                logger.error(f"Sandbox probe error: {se}")
+                return {"install_stdout": "", "stdout": "", "error": str(se)}
+            finally:
+                try:
+                    if sandbox is not None:
+                        sandbox.close()
+                except Exception:
+                    pass
 
         # Run the async sandbox interaction
-        sandbox_message = asyncio.run(_sandbox_receive_file(audio_bytes))
+        outputs = asyncio.run(_sandbox_mindsdb_probe(audio_bytes))
 
         return jsonify({
             "status": "real_endpoint_hit",
-            "sandbox_message": (
-                sandbox_message or "Fichier reçu dans le sandbox"
-            ),
+            "sandbox_install_stdout": outputs.get("install_stdout", ""),
+            "sandbox_stdout": outputs.get("stdout", ""),
+            "sandbox_error": outputs.get("error"),
         }), 200
 
     except BadRequest as br:
