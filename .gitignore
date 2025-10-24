@@ -1,0 +1,99 @@
+# Root .gitignore for V.O.T. Guardian (backend + frontend)
+
+# -----------------------------
+# Env & secrets
+# -----------------------------
+.env
+.env.*
+*.env
+*.env.*
+!env.example
+
+# Do not commit local overrides
+**/.env.local
+**/.env.development.local
+**/.env.test.local
+**/.env.production.local
+
+# -----------------------------
+# Node / Frontend (Vite + Vue)
+# -----------------------------
+node_modules/
+**/node_modules/
+
+# Vite / build outputs
+**/dist/
+**/.vite/
+**/coverage/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Editor caches
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# -----------------------------
+# Python / Backend (Flask)
+# -----------------------------
+venv/
+.envrc
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Unit test / coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+
+# Type checking / tooling
+.mypy_cache/
+.pyre/
+.pytype/
+
+# Logs / runtime
+*.log
+instance/
+
+# Byte-compiled / caches
+*.pyo
+*.pyd
+
+# -----------------------------
+# Docker / Compose / Misc
+# -----------------------------
+**/.cache/
+**/.temp/
+**/tmp/
+**/.DS_Store
+
+# Kubernetes manifests build outputs (if any generators are used)
+manifests/**/generated/
+
+# -----------------------------
+# VS Code workspace backups
+# -----------------------------
+.history/

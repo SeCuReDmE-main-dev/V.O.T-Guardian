@@ -1,0 +1,163 @@
+# ==============================================
+# V.O.T. GUARDIAN - LOCAL DEVELOPMENT STACK
+# ==============================================
+# Docker Compose for local development environment
+# Run: docker-compose up -d
+
+services:
+  # ----------------------------------------------
+  # PostgreSQL Database (Primary Database)
+  # ----------------------------------------------
+  postgresql:
+    image: postgres:15-alpine
+    container_name: vot-postgresql
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: vot_guardian
+      POSTGRES_USER: vot_user
+      POSTGRES_PASSWORD: vot_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgresql_data:/var/lib/postgresql/data
+      - ./init-scripts/postgresql:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vot_user -d vot_guardian"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ----------------------------------------------
+  # RethinkDB Database (Real-time Features)
+  # ----------------------------------------------
+  rethinkdb:
+    image: rethinkdb:2.4
+    container_name: vot-rethinkdb
+    restart: unless-stopped
+    ports:
+      - "28015:28015"  # Driver port
+      - "8081:8080"    # Web UI (external:internal)
+    volumes:
+      - rethinkdb_data:/data
+    command: rethinkdb --bind all --http-port 8080
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ----------------------------------------------
+  # MindsDB Database (AI/ML Predictions)
+  # ----------------------------------------------
+  mindsdb:
+    image: mindsdb/mindsdb:latest
+    container_name: vot-mindsdb
+    restart: unless-stopped
+    ports:
+      - "47334:47334"  # API port
+      - "47335:47335"  # GUI port
+    environment:
+      MINDSDB_STORAGE_DIR: /var/lib/mindsdb
+    volumes:
+      - mindsdb_data:/var/lib/mindsdb
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:47334/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # ----------------------------------------------
+  # Redis Cache (Session Store & Caching)
+  # ----------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: vot-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ----------------------------------------------
+  # V.O.T. Guardian API (Development)
+  # ----------------------------------------------
+  vot-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: vot-api
+    restart: unless-stopped
+    ports:
+      - "8000:8080"
+    environment:
+      - FLASK_ENV=development
+      - FLASK_DEBUG=true
+    volumes:
+      - .:/app
+      - /app/__pycache__
+      - /app/.git
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      rethinkdb:
+        condition: service_healthy
+      mindsdb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ----------------------------------------------
+  # Datadog Agent (Monitoring)
+  # ----------------------------------------------
+  datadog-agent:
+    image: datadog/agent:7
+    container_name: vot-datadog
+    restart: unless-stopped
+    environment:
+      - DD_API_KEY=${DD_API_KEY}
+      - DD_ENV=development
+      - DD_SERVICE=vot-guardian
+      - DD_LOGS_ENABLED=true
+      - DD_LOGS_CONFIG_CONTAINER_COLLECT_ALL=true
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /proc/:/host/proc/:ro
+      - /sys/fs/cgroup/:/host/sys/fs/cgroup:ro
+      - datadog_agent:/etc/datadog-agent
+    depends_on:
+      - vot-api
+
+# ----------------------------------------------
+# VOLUMES
+# ----------------------------------------------
+volumes:
+  postgresql_data:
+    driver: local
+  rethinkdb_data:
+    driver: local
+  mindsdb_data:
+    driver: local
+  redis_data:
+    driver: local
+  datadog_agent:
+    driver: local
+
+# ----------------------------------------------
+# NETWORKS
+# ----------------------------------------------
+networks:
+  default:
+    name: vot-guardian-network
+    driver: bridge

@@ -1,0 +1,91 @@
+# ==============================================
+# V.O.T. GUARDIAN - DEVELOPMENT DOCKERFILE
+# ==============================================
+# Multi-stage build for development environment
+
+# ----------------------------------------------
+# Stage 1: Base Python Environment
+# ----------------------------------------------
+FROM python:3.10-slim AS base
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    libffi-dev \
+    libssl-dev \
+    ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create necessary directories *AS ROOT*
+RUN mkdir -p /app/models /app/logs /app/data
+
+# Create non-root user
+RUN useradd --create-home --shell /bin/bash vot
+
+# Give the new user ownership of the app directory
+RUN chown -R vot:vot /app
+
+# Now, switch to the non-root user
+USER vot
+# ----------------------------------------------
+# Stage 2: Development Dependencies
+# ----------------------------------------------
+FROM base AS development
+
+# Copy requirements first for better caching
+COPY --chown=vot:vot requirements.txt .
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy source code
+COPY --chown=vot:vot src/ ./src/
+COPY --chown=vot:vot src/__init__.py .
+
+# Set environment variables
+ENV PYTHONPATH=/app
+ENV FLASK_ENV=development
+ENV FLASK_DEBUG=true
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8080/health || exit 1
+
+# Default command
+CMD ["python", "-m", "src.api.main"]
+
+# ----------------------------------------------
+# Stage 3: Production Build (Optional)
+# ----------------------------------------------
+FROM base AS production
+
+# Copy requirements
+COPY --chown=vot:vot requirements.txt .
+
+# Install only production dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy source code
+COPY --chown=vot:vot src/ ./src/
+
+# Set environment for production
+ENV PYTHONPATH=/app
+ENV FLASK_ENV=production
+ENV FLASK_DEBUG=false
+
+# Expose port
+EXPOSE 8080
+
+# Health check for production
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost:8080/health || exit 1
+
+# Run as non-root
+USER vot
+
+# Production command
+CMD ["python", "-m", "src.api.main"]

@@ -1,0 +1,169 @@
+/* V.O.T. Guardian - Custom Styles */
+/* ============================== */
+/* Tailwind is configured centrally via tailwind.config.js */
+
+/* Tailwind CSS Directives */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom Base Styles */
+@layer base {
+  html {
+    font-family: 'Outfit', system-ui, sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-weight: 600;
+  }
+}
+
+/* Custom Component Classes */
+@layer components {
+  /* V.O.T. Guardian Brand Components */
+  .vot-card {
+    @apply bg-surface-50 dark:bg-surface-800 border border-surface-200 dark:border-surface-700 rounded-xl shadow-soft p-6 transition-all duration-300 hover:shadow-medium;
+  }
+
+  .vot-button-primary {
+    @apply bg-primary-600 hover:bg-primary-700 text-white font-medium py-3 px-6 rounded-lg transition-all duration-200 shadow-soft hover:shadow-medium focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2;
+  }
+
+  .vot-button-secondary {
+    @apply bg-surface-100 dark:bg-surface-700 hover:bg-surface-200 dark:hover:bg-surface-600 text-surface-900 dark:text-surface-100 font-medium py-3 px-6 rounded-lg transition-all duration-200 border border-surface-300 dark:border-surface-600;
+  }
+
+  .vot-input {
+    @apply bg-surface-50 dark:bg-surface-800 border border-surface-300 dark:border-surface-600 rounded-lg px-4 py-3 text-surface-900 dark:text-surface-100 placeholder-surface-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200;
+  }
+
+  /* Audio Upload Zone */
+  .vot-upload-zone {
+    @apply border-2 border-dashed border-surface-300 dark:border-surface-600 rounded-xl p-8 text-center transition-all duration-300 hover:border-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20;
+  }
+
+  .vot-upload-zone.drag-over {
+    @apply border-primary-500 bg-primary-50 dark:bg-primary-900/20;
+  }
+
+  /* Status Indicators */
+  .vot-status-healthy {
+    @apply inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-success-100 text-success-800 dark:bg-success-900/30 dark:text-success-400;
+  }
+
+  .vot-status-warning {
+    @apply inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-warning-100 text-warning-800 dark:bg-warning-900/30 dark:text-warning-400;
+  }
+
+  .vot-status-danger {
+    @apply inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-danger-100 text-danger-800 dark:bg-danger-900/30 dark:text-danger-400;
+  }
+
+  /* Waveform Visualization */
+  .vot-waveform {
+    @apply w-full h-20 bg-surface-100 dark:bg-surface-800 rounded-lg overflow-hidden;
+  }
+
+  .vot-waveform-bar {
+    @apply bg-gradient-to-t from-primary-400 to-primary-600 rounded-sm transition-all duration-200;
+  }
+
+  /* Analysis Results */
+  .vot-result-card {
+    @apply bg-gradient-to-br from-surface-50 to-surface-100 dark:from-surface-800 dark:to-surface-700 border border-surface-200 dark:border-surface-600 rounded-xl p-6 shadow-soft;
+  }
+
+  .vot-confidence-bar {
+    @apply h-3 bg-surface-200 dark:bg-surface-700 rounded-full overflow-hidden;
+  }
+
+  .vot-confidence-fill {
+    @apply h-full bg-gradient-to-r from-success-400 to-success-600 rounded-full transition-all duration-500 ease-out;
+  }
+
+  /* Dark Mode Transition */
+  .vot-dark-transition {
+    @apply transition-colors duration-300 ease-in-out;
+  }
+}
+
+/* Custom Utilities */
+@layer utilities {
+  /* Text Gradient */
+  .vot-text-gradient {
+    @apply bg-gradient-to-r from-primary-600 to-primary-800 bg-clip-text text-transparent;
+  }
+
+  /* Glass Effect */
+  .vot-glass {
+    @apply bg-white/80 dark:bg-surface-900/80 backdrop-blur-md border border-white/20 dark:border-surface-700/50;
+  }
+
+  /* Security Glow Effect */
+  .vot-security-glow {
+    @apply shadow-security ring-1 ring-primary-500/20;
+  }
+
+  /* Animation for Real-time Updates */
+  .vot-pulse-security {
+    animation: security-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  @keyframes security-pulse {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.7;
+    }
+  }
+
+  /* Focus styles for accessibility */
+  .vot-focus-ring:focus {
+    @apply outline-none ring-2 ring-primary-500 ring-offset-2;
+  }
+
+  /* High contrast mode support */
+  @media (prefers-contrast: high) {
+    .vot-card {
+      @apply border-2 border-surface-900 dark:border-surface-100;
+    }
+
+    .vot-button-primary {
+      @apply border-2 border-primary-700;
+    }
+  }
+
+  /* Reduced motion support */
+  @media (prefers-reduced-motion: reduce) {
+    .vot-waveform-bar,
+    .vot-confidence-fill,
+    .vot-pulse-security {
+      animation: none;
+      transition: none;
+    }
+  }
+}
+
+/* Global Styles */
+.vot-guardian-app {
+  @apply min-h-screen bg-gradient-to-br from-surface-50 via-white to-surface-100 dark:from-surface-900 dark:via-surface-800 dark:to-surface-900;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  @apply w-2;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-surface-100 dark:bg-surface-800;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-surface-300 dark:bg-surface-600 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-surface-400 dark:bg-surface-500;
+}

@@ -1,0 +1,41 @@
+# ==============================================
+# V.O.T. GUARDIAN - CORE DEPENDENCIES
+# ==============================================
+# Only 3 core dependencies as specified
+
+# 1. E2B Code Interpreter - For secure sandbox isolation
+e2b-code-interpreter==1.0.0
+
+# 2. Datadog API Client - For monitoring and observability
+datadog-api-client==2.16.0
+
+# 3. Cryptography - For Protocole Tenebris encryption
+cryptography==41.0.7
+
+# ==============================================
+# PRODUCTION DEPENDENCIES
+# ==============================================
+# Core Python packages for the application
+Flask==3.0.0              # Web framework
+Flask-Cors==4.0.0         # CORS for cross-origin requests from frontend
+SQLAlchemy==2.0.23        # ORM for PostgreSQL
+torch==2.1.0             # ML framework for CNN-LSTM
+librosa==0.10.1          # Audio processing
+numpy==1.25.2            # Numerical computing
+pandas==2.1.1            # Data manipulation
+redis==5.0.1             # Caching and sessions
+python-jose[cryptography]==3.3.0  # JWT tokens
+passlib[bcrypt]==1.7.4   # Password hashing
+python-multipart==0.0.6  # File uploads
+uvicorn==0.24.0          # ASGI server
+alembic==1.12.0          # Database migrations
+pytest==7.4.3            # Testing framework
+black==23.10.0           # Code formatting
+flake8==6.0.0            # Linting
+
+# ==============================================
+# DATABASE DEPENDENCIES
+# ==============================================
+asyncpg==0.30.0          # PostgreSQL async client
+rethinkdb==2.4.10.post1  # RethinkDB client
+requests==2.32.5         # HTTP client for MindsDB
