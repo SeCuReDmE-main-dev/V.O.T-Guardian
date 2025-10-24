@@ -1,0 +1,11 @@
+# Dockerfile.mindsdb
+# Construit sur l'image officielle de MindsDB pour ajouter les dépendances Whisper.
+
+FROM mindsdb/mindsdb:latest
+
+# CORRECTION CRITIQUE (Identifiée dans les logs d'hier) :
+# Ajoute les dépendances Python nécessaires pour le moteur MindsDB 'whisper' 
+# et débloque l'étape 3 du plan.
+RUN python -m pip install --no-cache-dir \
+    openai-whisper \
+    "tiktoken>=0.3.0"

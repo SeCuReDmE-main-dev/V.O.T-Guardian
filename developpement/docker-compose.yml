@@ -50,7 +50,9 @@ services:
   # MindsDB Database (AI/ML Predictions)
   # ----------------------------------------------
   mindsdb:
-    image: mindsdb/mindsdb:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.mindsdb 
     container_name: vot-mindsdb
     restart: unless-stopped
     ports:
