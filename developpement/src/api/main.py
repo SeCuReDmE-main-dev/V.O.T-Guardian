@@ -140,7 +140,8 @@ def analyze_audio():
             # Allow internet and extend timeout to handle pip installs
             sandbox = None
             try:
-                sandbox = E2BSandbox.create(
+                # e2b_code_interpreter Sandbox is instantiated directly
+                sandbox = E2BSandbox(
                     api_key=e2b_manager.config.api_key,
                     allow_internet_access=True,
                     timeout=max(300, e2b_manager.config.sandbox_timeout),
@@ -199,7 +200,8 @@ def analyze_audio():
             finally:
                 try:
                     if sandbox is not None:
-                        sandbox.close()
+                        # Terminate the sandbox cleanly
+                        sandbox.kill()
                 except Exception:
                     pass
 
