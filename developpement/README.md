@@ -71,21 +71,31 @@ V.O.T. Guardian is a revolutionary voice authentication system designed to prote
 
 ### 1. Clone and Setup
 
+From the repo root, work inside the `developpement/` folder where the backend lives.
+
 ```bash
 git clone <repository-url>
-cd vot-guardian
+cd V.O.T-Guardian/developpment
 cp .env.example .env
 # Edit .env with your API keys and database URLs
+```
+
+On Windows PowerShell:
+
+```pwsh
+Set-Location .\developpement
+Copy-Item .env.example .env
+# Then edit .env with your keys
 ```
 
 ### 2. Install Dependencies
 
 ```bash
-# Core dependencies only (as specified)
+# Core dependencies (run inside developpement/)
 pip install -r requirements.txt
 
-# Optional: Install full development stack
-pip install flask sqlalchemy torch librosa numpy pandas redis
+# Optional: Install full development stack (already covered by requirements)
+# pip install flask sqlalchemy torch librosa numpy pandas redis
 ```
 
 ### 3. Configure Environment
@@ -123,10 +133,10 @@ docker-compose up -d postgresql rethinkdb mindsdb redis
 ### 5. Run the Application
 
 ```bash
-# Development mode
+# Development mode (run from developpement/)
 python -m src.api.main
 
-# Or using Docker
+# Or using Docker (run from developpement/)
 docker build -f Dockerfile.dev -t vot-guardian .
 docker run -p 8080:8080 --env-file .env vot-guardian
 ```
@@ -142,6 +152,19 @@ curl -X POST http://localhost:8080/analyze \
   -F "audio=@sample_audio.wav" \
   -F "call_id=test_001"
 ```
+
+Windows PowerShell:
+
+```pwsh
+irm http://localhost:8080/health
+
+curl -Method Post http://localhost:8080/analyze `
+  -Form @{ audio = Get-Item .\sample_audio.wav; call_id = 'test_001' }
+```
+
+Notes:
+- The backend automatically loads variables from `.env` using python-dotenv.
+- To verify in PowerShell (compatibly), run: `Write-Host ("E2B_API_KEY=" + ($env:E2B_API_KEY ?? ""))` on PowerShell 7+, or `Write-Host ("E2B_API_KEY=" + ("${env:E2B_API_KEY}"))` for broader compatibility.
 
 ## 📋 API Endpoints
 
