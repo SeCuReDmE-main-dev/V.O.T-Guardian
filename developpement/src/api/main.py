@@ -36,7 +36,7 @@ except Exception:
     # python-dotenv not installed or other issue; continue without it
     pass
 try:
-    # Direct E2B SDK import for one-off sandboxes with internet access (Code Interpreter)
+    # Direct E2B SDK import for one-off sandboxes with internet access
     from e2b_code_interpreter import Sandbox as E2BSandbox
 except Exception:  # pragma: no cover
     E2BSandbox = None
@@ -50,7 +50,10 @@ from werkzeug.exceptions import BadRequest
 # Import core modules
 from ..core.security.tenebris import TenebrisProtocol
 from ..core.monitoring.datadog_client import DatadogClient
-from ..core.e2b.sandbox_manager import E2BSandboxManager
+from ..core.e2b.sandbox_manager import (
+    E2BSandboxManager,
+    run_python_code_in_sandbox,
+)
 from ..core.audio.processor import AudioProcessor
 from ..core.ml.predictor import MLPredictor
 from ..core.database.postgresql_client import PostgreSQLClient
