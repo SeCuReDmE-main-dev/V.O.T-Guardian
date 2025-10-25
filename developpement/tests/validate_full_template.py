@@ -80,6 +80,9 @@ def main() -> None:
         if not output_text and run_result.get("stderr"):
             output_text = str(run_result["stderr"]).strip()
         print(output_text)
+    except Exception as exc:  # pragma: no cover - runtime guard
+        _print_error(str(exc))
+        return
     finally:
         if sandbox is not None:
             try:
