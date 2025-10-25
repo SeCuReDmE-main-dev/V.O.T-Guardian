@@ -2,7 +2,7 @@
 E2B Sandbox Manager - Isolated Execution Environment
 ===================================================
 
-Manages E2B sandboxes for secure audio analysis with Protocole Tenebris compliance.
+Manages E2B sandboxes for secure audio analysis with Tenebris compliance.
 
 Features:
 - Pool management for sandbox reuse
@@ -95,7 +95,9 @@ class E2BSandboxManager:
             min_pool_size=int(os.getenv('E2B_POOL_MIN_SIZE', '5')),
             max_pool_size=int(os.getenv('E2B_POOL_MAX_SIZE', '50')),
             sandbox_timeout=int(os.getenv('E2B_SANDBOX_TIMEOUT', '30')),
-            health_check_interval=int(os.getenv('E2B_HEALTH_CHECK_INTERVAL', '30')),
+            health_check_interval=int(
+                os.getenv('E2B_HEALTH_CHECK_INTERVAL', '30')
+            ),
             template_id=(os.getenv('E2B_TEMPLATE_ID') or None),
         )
 
