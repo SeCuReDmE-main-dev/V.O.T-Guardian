@@ -158,20 +158,32 @@ def analyze_audio():
                         e2b_manager.config.template_id
                         or 'vot-guardian-cpu-mid'
                     )
-                    sandbox = GenericE2BSandbox(
-                        template=tmpl,
-                        api_key=e2b_manager.config.api_key or None,
-                    )
+                    create_kwargs = {
+                        'template': tmpl,
+                        'allow_internet_access': True,
+                    }
+                    if e2b_manager.config.api_key:
+                        create_kwargs['api_key'] = (
+                            e2b_manager.config.api_key
+                        )
+                    sandbox = GenericE2BSandbox.create(**create_kwargs)
                 else:
                     if E2BSandbox is None:
                         raise RuntimeError(
                             "Code Interpreter SDK not available"
                         )
-                    sandbox = E2BSandbox(
-                        api_key=e2b_manager.config.api_key,
-                        allow_internet_access=True,
-                        timeout=max(300, e2b_manager.config.sandbox_timeout),
-                    )
+                    create_kwargs = {
+                        'allow_internet_access': True,
+                        'timeout': max(
+                            300,
+                            e2b_manager.config.sandbox_timeout,
+                        ),
+                    }
+                    if e2b_manager.config.api_key:
+                        create_kwargs['api_key'] = (
+                            e2b_manager.config.api_key
+                        )
+                    sandbox = E2BSandbox.create(**create_kwargs)
 
                 loop = asyncio.get_running_loop()
                 await loop.run_in_executor(
@@ -205,7 +217,8 @@ def analyze_audio():
                         "import subprocess, sys\n"
                         "pkgs = ['mindsdb', 'librosa', 'torch']\n"
                         "print('Installing packages:', pkgs)\n"
-                        "cmd = [sys.executable, '-m', 'pip', 'install'] + pkgs\n"
+                        "cmd = [sys.executable, '-m', 'pip', 'install']"
+                        " + pkgs\n"
                         "proc = subprocess.run(\n"
                         "    cmd, capture_output=True, text=True\n"
                         ")\n"

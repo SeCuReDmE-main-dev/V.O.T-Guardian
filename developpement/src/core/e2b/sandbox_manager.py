@@ -241,21 +241,27 @@ class E2BSandboxManager:
                 # Use custom template via generic E2B SDK
                 # (v2: Sandbox.create, API key comes from env)
                 tmpl = self.config.template_id
-                sandbox = GenericSandbox(
-                    template=tmpl,
-                    api_key=self.config.api_key or None,
-                )
+                create_kwargs = {
+                    'template': tmpl,
+                    'timeout': self.config.sandbox_timeout,
+                    'allow_internet_access': False,
+                }
+                if self.config.api_key:
+                    create_kwargs['api_key'] = self.config.api_key
+                sandbox = GenericSandbox.create(**create_kwargs)
             else:
                 # Fallback to Code Interpreter template
                 if not E2B_CI_AVAILABLE or CodeInterpreterSandbox is None:
                     raise Exception(
                         "E2B SDK not available (generic or code interpreter)"
                     )
-                sandbox = CodeInterpreterSandbox(
-                    api_key=self.config.api_key,
-                    allow_internet_access=False,  # Critical for Tenebris
-                    timeout=self.config.sandbox_timeout,
-                )
+                create_kwargs = {
+                    'allow_internet_access': False,  # Critical for Tenebris
+                    'timeout': self.config.sandbox_timeout,
+                }
+                if self.config.api_key:
+                    create_kwargs['api_key'] = self.config.api_key
+                sandbox = CodeInterpreterSandbox.create(**create_kwargs)
 
             # Create instance record
             instance = SandboxInstance(

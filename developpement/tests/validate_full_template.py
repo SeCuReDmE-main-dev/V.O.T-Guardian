@@ -33,7 +33,13 @@ def main() -> None:
     template = os.getenv("E2B_TEMPLATE_ID", "vot-guardian-cpu-mid")
     sandbox = None
     try:
-        sandbox = Sandbox(template=template)
+        create_kwargs = {}
+        if template:
+            create_kwargs["template"] = template
+        api_key = os.getenv("E2B_API_KEY")
+        if api_key:
+            create_kwargs["api_key"] = api_key
+        sandbox = Sandbox.create(**create_kwargs)
 
         code = (
             "import json\n"
