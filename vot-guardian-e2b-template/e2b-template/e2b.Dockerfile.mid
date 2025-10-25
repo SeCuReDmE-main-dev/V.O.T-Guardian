@@ -18,11 +18,11 @@ RUN python -m ensurepip --upgrade || true \
 
 # Install MindsDB client and Whisper; create a lightweight alias so `import mindsdb`
 # works even when only the SDK is installed.
-RUN set -eux; \
-    pip install --no-cache-dir \
-    mindsdb_sdk \
-    openai-whisper; \
-    python - <<'PY'
+RUN set -eux \
+    && pip install --no-cache-dir \
+        mindsdb_sdk \
+        openai-whisper \
+    && python - <<'PY'
 import importlib
 import pathlib
 
