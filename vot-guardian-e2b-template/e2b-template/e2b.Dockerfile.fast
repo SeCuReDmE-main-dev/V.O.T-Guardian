@@ -41,5 +41,10 @@ RUN echo "----- BEGIN sandbox-core-requirements.txt -----" && \
     echo "\n----- END sandbox-core-requirements.txt -----" && \
     python -m pip install --no-cache-dir -r /opt/vot-guardian/sandbox-core-requirements.txt
 
+# Install MindsDB client and Whisper for audio processing
+RUN pip install --no-cache-dir \
+    mindsdb_sdk \
+    openai-whisper
+
 # Non-root user for runtime, if applicable
 USER user
