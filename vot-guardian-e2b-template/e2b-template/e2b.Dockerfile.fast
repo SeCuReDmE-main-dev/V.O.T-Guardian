@@ -41,10 +41,27 @@ RUN echo "----- BEGIN sandbox-core-requirements.txt -----" && \
     echo "\n----- END sandbox-core-requirements.txt -----" && \
     python -m pip install --no-cache-dir -r /opt/vot-guardian/sandbox-core-requirements.txt
 
-# Install MindsDB client and Whisper for audio processing
+# Install MindsDB client and Whisper; create a lightweight alias so `import mindsdb`
+# succeeds in sandboxes without the full server package.
 RUN pip install --no-cache-dir \
     mindsdb_sdk \
-    openai-whisper
+    openai-whisper \
+    && python - <<'PY'
+import importlib
+import pathlib
+
+sdk = importlib.import_module('mindsdb_sdk')
+site_packages = pathlib.Path(sdk.__file__).resolve().parent.parent
+alias_pkg = site_packages / 'mindsdb'
+alias_pkg.mkdir(exist_ok=True)
+alias_init = alias_pkg / '__init__.py'
+alias_init.write_text(
+    "import mindsdb_sdk as _sdk\n"
+    "from mindsdb_sdk import *  # noqa: F401,F403\n"
+    "__all__ = [name for name in globals() if not name.startswith('_')]\n"
+    "__version__ = getattr(_sdk, '__version__', '0.0.0')\n"
+)
+PY
 
 # Non-root user for runtime, if applicable
 USER user
