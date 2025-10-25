@@ -153,7 +153,10 @@ def analyze_audio():
                         e2b_manager.config.template_id
                         or 'vot-guardian-cpu-mid'
                     )
-                    sandbox = GenericE2BSandbox.create(tmpl)
+                    sandbox = GenericE2BSandbox(
+                        template=tmpl,
+                        api_key=e2b_manager.config.api_key or None,
+                    )
                 else:
                     # Fallback to Code Interpreter sandbox (legacy SDK)
                     sandbox = E2BSandbox(
