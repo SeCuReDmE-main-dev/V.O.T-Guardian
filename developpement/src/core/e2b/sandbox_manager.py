@@ -18,6 +18,7 @@ import asyncio
 import importlib
 import logging
 import os
+import shlex
 import time
 import uuid
 from dataclasses import dataclass
@@ -81,7 +82,9 @@ def run_python_code_in_sandbox(
     try:
         if hasattr(sandbox, 'commands') and hasattr(sandbox.commands, 'run'):
             try:
-                response = sandbox.commands.run([python_bin, '-c', code])
+                quoted_code = shlex.quote(code)
+                command = f"{python_bin} -c {quoted_code}"
+                response = sandbox.commands.run(command)
             except Exception as run_exc:  # fallback when list execution fails
                 temp_path = f"/tmp/vot_guardian_{uuid.uuid4().hex}.py"
                 if not hasattr(sandbox, 'files') or not hasattr(
@@ -90,7 +93,9 @@ def run_python_code_in_sandbox(
                     raise run_exc
                 try:
                     sandbox.files.write(temp_path, code)
-                    response = sandbox.commands.run([python_bin, temp_path])
+                    response = sandbox.commands.run(
+                        f"{python_bin} {shlex.quote(temp_path)}"
+                    )
                 except Exception:
                     raise run_exc
                 finally:
