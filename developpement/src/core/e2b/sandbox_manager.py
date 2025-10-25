@@ -429,7 +429,7 @@ class E2BSandboxManager:
 
             if run_result.get('exit_code') not in (0, None):
                 self.logger.warning(
-                    "Sandbox feature script exited with code %s",  # noqa: TRY400
+                    "Sandbox feature script exited with code %s",
                     run_result.get('exit_code'),
                 )
 
