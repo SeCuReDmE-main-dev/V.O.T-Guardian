@@ -177,14 +177,21 @@ class E2BSandboxManager:
         """Create a new E2B sandbox."""
         try:
             # Create sandbox with security constraints
-            if self.config.template_id and E2B_GENERIC_AVAILABLE and GenericSandbox is not None:
-                # Use custom template via generic E2B SDK (v2: Sandbox.create, API key via env)
+            if (
+                self.config.template_id
+                and E2B_GENERIC_AVAILABLE
+                and GenericSandbox is not None
+            ):
+                # Use custom template via generic E2B SDK
+                # (v2: Sandbox.create, API key comes from env)
                 tmpl = self.config.template_id
                 sandbox = GenericSandbox.create(tmpl)
             else:
                 # Fallback to Code Interpreter template
                 if not E2B_CI_AVAILABLE or CodeInterpreterSandbox is None:
-                    raise Exception("E2B SDK not available (generic or code interpreter)")
+                    raise Exception(
+                        "E2B SDK not available (generic or code interpreter)"
+                    )
                 sandbox = CodeInterpreterSandbox(
                     api_key=self.config.api_key,
                     allow_internet_access=False,  # Critical for Tenebris
@@ -216,7 +223,9 @@ class E2BSandboxManager:
     async def _ensure_minimum_pool(self):
         """Ensure minimum number of sandboxes are available."""
         async with self._pool_lock:
-            current_size = len([s for s in self._pool.values() if s.status == 'healthy'])
+            current_size = len([
+                s for s in self._pool.values() if s.status == 'healthy'
+            ])
             needed = self.config.min_pool_size - current_size
 
             if needed > 0:
@@ -253,7 +262,9 @@ class E2BSandboxManager:
                         instance.status = 'degraded'
 
                 except Exception as e:
-                    self.logger.warning(f"Sandbox {sandbox_id} health check failed: {e}")
+                    self.logger.warning(
+                        f"Sandbox {sandbox_id} health check failed: {e}"
+                    )
                     instance.status = 'dead'
                     await self._destroy_sandbox(sandbox_id)
 
@@ -303,7 +314,9 @@ class E2BSandboxManager:
                 self.logger.info(f"Destroyed E2B sandbox: {sandbox_id}")
 
             except Exception as e:
-                self.logger.error(f"Error destroying sandbox {sandbox_id}: {e}")
+                self.logger.error(
+                    f"Error destroying sandbox {sandbox_id}: {e}"
+                )
 
     async def _destroy_all_sandboxes(self):
         """Destroy all sandboxes in the pool."""
@@ -312,7 +325,9 @@ class E2BSandboxManager:
             for sandbox_id in sandbox_ids:
                 await self._destroy_sandbox(sandbox_id)
 
-    async def extract_audio_features(self, audio_file, sandbox_id: str) -> Dict[str, float]:
+    async def extract_audio_features(
+        self, audio_file, sandbox_id: str
+    ) -> Dict[str, float]:
         """
         Extract audio features in isolated sandbox.
 
@@ -399,7 +414,9 @@ except Exception as e:
                     'shimmer': float(parts[2])
                 }
             else:
-                self.logger.warning(f"Unexpected feature result format: {result_text}")
+                self.logger.warning(
+                    f"Unexpected feature result format: {result_text}"
+                )
                 return {'vot': 0.4, 'jitter': 0.05, 'shimmer': 0.1}
         except Exception as e:
             self.logger.error(f"Error parsing features: {e}")
@@ -407,8 +424,12 @@ except Exception as e:
 
     def get_pool_stats(self) -> Dict[str, Any]:
         """Get current pool statistics."""
-        healthy = len([s for s in self._pool.values() if s.status == 'healthy'])
-        degraded = len([s for s in self._pool.values() if s.status == 'degraded'])
+        healthy = len([
+            s for s in self._pool.values() if s.status == 'healthy'
+        ])
+        degraded = len([
+            s for s in self._pool.values() if s.status == 'degraded'
+        ])
         dead = len([s for s in self._pool.values() if s.status == 'dead'])
 
         return {
