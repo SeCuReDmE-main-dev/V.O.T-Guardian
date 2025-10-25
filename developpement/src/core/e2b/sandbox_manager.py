@@ -79,18 +79,25 @@ def run_python_code_in_sandbox(
             response = sandbox.commands.run([python_bin, '-c', code])
             result['stdout'] = getattr(response, 'stdout', '') or ''
             result['stderr'] = getattr(response, 'stderr', '') or ''
-            result['exit_code'] = getattr(response, 'exit_code', None)
+            exit_code = getattr(response, 'exit_code', None)
+            if exit_code is None:
+                exit_code = getattr(response, 'returncode', 0)
+            result['exit_code'] = exit_code
         elif hasattr(sandbox, 'run_code'):
             response = sandbox.run_code(code)
             logs = getattr(getattr(response, 'logs', None), 'stdout', None)
             result['stdout'] = '\n'.join(logs) if logs else (
                 getattr(response, 'text', '') or ''
             )
-            result['stderr'] = getattr(
-                getattr(response, 'logs', None), 'stderr', []
+            err_logs = getattr(
+                getattr(response, 'logs', None), 'stderr', None
             )
-            if isinstance(result['stderr'], list):
-                result['stderr'] = '\n'.join(result['stderr'])
+            if isinstance(err_logs, list):
+                result['stderr'] = '\n'.join(err_logs)
+            elif err_logs:
+                result['stderr'] = str(err_logs)
+            else:
+                result['stderr'] = ''
             result['exit_code'] = 0
         else:
             raise AttributeError('Sandbox does not support command execution')
@@ -408,12 +415,30 @@ class E2BSandboxManager:
 
             # Execute feature extraction code
             code = self._get_feature_extraction_code(filename)
-            result = await asyncio.get_event_loop().run_in_executor(
-                None, lambda: sandbox.run_code(code)
+            loop = asyncio.get_event_loop()
+            run_result = await loop.run_in_executor(
+                None,
+                lambda: run_python_code_in_sandbox(sandbox, code),
             )
 
+            if run_result.get('error'):
+                self.logger.error(
+                    f"Feature extraction failed: {run_result['error']}"
+                )
+                return {'vot': 0.4, 'jitter': 0.05, 'shimmer': 0.1}
+
+            if run_result.get('exit_code') not in (0, None):
+                self.logger.warning(
+                    "Sandbox feature script exited with code %s",  # noqa: TRY400
+                    run_result.get('exit_code'),
+                )
+
+            output_text = run_result.get('stdout', '')
+            if not output_text and run_result.get('stderr'):
+                output_text = run_result['stderr']
+
             # Parse results
-            features = self._parse_features_result(result.text)
+            features = self._parse_features_result(output_text)
 
             return features
 
