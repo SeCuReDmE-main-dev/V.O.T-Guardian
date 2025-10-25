@@ -33,21 +33,6 @@ RUN python -m ensurepip --upgrade || true && \
 RUN pip install --no-cache-dir \
     mindsdb_sdk \
     openai-whisper \
-    && python - <<'PY'
-import importlib
-import pathlib
-
-sdk = importlib.import_module('mindsdb_sdk')
-site_packages = pathlib.Path(sdk.__file__).resolve().parent.parent
-alias_pkg = site_packages / 'mindsdb'
-alias_pkg.mkdir(exist_ok=True)
-alias_init = alias_pkg / '__init__.py'
-alias_init.write_text(
-    "import mindsdb_sdk as _sdk\n"
-    "from mindsdb_sdk import *  # noqa: F401,F403\n"
-    "__all__ = [name for name in globals() if not name.startswith('_')]\n"
-    "__version__ = getattr(_sdk, '__version__', '0.0.0')\n"
-)
-PY
+    && python -c "import importlib, pathlib; sdk = importlib.import_module('mindsdb_sdk'); site_packages = pathlib.Path(sdk.__file__).resolve().parent.parent; alias_pkg = site_packages / 'mindsdb'; alias_pkg.mkdir(exist_ok=True); alias_init = alias_pkg / '__init__.py'; alias_init.write_text('import mindsdb_sdk as _sdk\\nfrom mindsdb_sdk import *  # noqa: F401,F403\\n__all__ = [name for name in globals() if not name.startswith(\\'_\\')]\\n__version__ = getattr(_sdk, \\'__version__\\', \\'0.0.0\\')\\n')"
 
 USER user
