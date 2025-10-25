@@ -16,10 +16,27 @@ RUN python -m ensurepip --upgrade || true \
     && python -m pip install --no-cache-dir torch==2.1.0 --index-url https://download.pytorch.org/whl/cpu \
     && python -m pip install --no-cache-dir numpy==1.26.4 librosa==0.10.1
 
-# Install MindsDB client and Whisper for audio processing
+# Install MindsDB client and Whisper; create a lightweight alias so `import mindsdb`
+# works even when only the SDK is installed.
 RUN pip install --no-cache-dir \
     mindsdb_sdk \
-    openai-whisper
+    openai-whisper \
+    && python - <<'PY'
+import importlib
+import pathlib
+
+sdk = importlib.import_module('mindsdb_sdk')
+site_packages = pathlib.Path(sdk.__file__).resolve().parent.parent
+alias_pkg = site_packages / 'mindsdb'
+alias_pkg.mkdir(exist_ok=True)
+alias_init = alias_pkg / '__init__.py'
+alias_init.write_text(
+    "import mindsdb_sdk as _sdk\n"
+    "from mindsdb_sdk import *  # noqa: F401,F403\n"
+    "__all__ = [name for name in globals() if not name.startswith('_')]\n"
+    "__version__ = getattr(_sdk, '__version__', '0.0.0')\n"
+)
+PY
 
 #
 # Create non-root user (E2B best practice)
