@@ -18,27 +18,34 @@ RUN python -m ensurepip --upgrade || true \
 
 # Install MindsDB client and Whisper; create a lightweight alias so `import mindsdb`
 # works even when only the SDK is installed.
-RUN pip install --no-cache-dir \
+RUN set -eux; \
+    pip install --no-cache-dir \
     mindsdb_sdk \
-    openai-whisper \
-    && python -c 'exec("""import importlib
+    openai-whisper; \
+    python - <<'PY'
+import importlib
 import pathlib
-from importlib import metadata as md
 
 sdk = importlib.import_module("mindsdb_sdk")
 site_packages = pathlib.Path(sdk.__file__).resolve().parent.parent
 alias_pkg = site_packages / "mindsdb"
 alias_pkg.mkdir(exist_ok=True)
 alias_init = alias_pkg / "__init__.py"
+
 try:
-    version = sdk.__version__
-except AttributeError:
-    try:
-        version = md.version("mindsdb_sdk")
-    except Exception:
-        version = "0.0.0"
-alias_init.write_text(f"import mindsdb_sdk as _sdk\\nfrom mindsdb_sdk import *  # noqa: F401,F403\\n__all__ = [name for name in globals() if not name.startswith(\"_\")]\\n__version__ = \"{version}\"\\n")
-""")'
+    metadata = importlib.import_module("importlib.metadata")
+    version = metadata.version("mindsdb_sdk")
+except Exception:
+    version = getattr(sdk, "__version__", "0.0.0")
+
+alias_init.write_text(
+    "import mindsdb_sdk as _sdk\n"
+    "_globals = {name: getattr(_sdk, name) for name in dir(_sdk) if not name.startswith('_')}\n"
+    "locals().update(_globals)\n"
+    "__all__ = [name for name in _globals]\n"
+    f"__version__ = '{version}'\\n"
+)
+PY
 
 #
 # Create non-root user (E2B best practice)
