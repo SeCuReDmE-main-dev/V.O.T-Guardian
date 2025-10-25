@@ -15,6 +15,7 @@ Monitoring: Datadog integration
 
 import os
 import asyncio
+import importlib
 # import time  # no longer used in the real endpoint step
 import logging
 from datetime import datetime
@@ -37,12 +38,12 @@ except Exception:
     pass
 try:
     # Direct E2B SDK import for one-off sandboxes with internet access
-    from e2b_code_interpreter import Sandbox as E2BSandbox
+    E2BSandbox = importlib.import_module('e2b_code_interpreter').Sandbox
 except Exception:  # pragma: no cover
     E2BSandbox = None
 try:
     # Generic E2B SDK that supports custom templates
-    from e2b import Sandbox as GenericE2BSandbox  # type: ignore
+    GenericE2BSandbox = importlib.import_module('e2b').Sandbox
 except Exception:  # pragma: no cover
     GenericE2BSandbox = None
 from werkzeug.exceptions import BadRequest

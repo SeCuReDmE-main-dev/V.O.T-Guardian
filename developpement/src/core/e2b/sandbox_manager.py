@@ -15,6 +15,7 @@ Author: Jean-Sébastien Beaulieu
 """
 
 import asyncio
+import importlib
 import logging
 import os
 import time
@@ -24,14 +25,16 @@ from contextlib import asynccontextmanager
 
 # Import E2B SDKs (generic + code interpreter) optionally
 try:
-    from e2b import Sandbox as GenericSandbox  # type: ignore
+    GenericSandbox = importlib.import_module('e2b').Sandbox
     E2B_GENERIC_AVAILABLE = True
 except Exception:  # pragma: no cover
     GenericSandbox = None
     E2B_GENERIC_AVAILABLE = False
 
 try:
-    from e2b_code_interpreter import Sandbox as CodeInterpreterSandbox  # type: ignore
+    CodeInterpreterSandbox = importlib.import_module(
+        'e2b_code_interpreter'
+    ).Sandbox
     E2B_CI_AVAILABLE = True
 except Exception:  # pragma: no cover
     CodeInterpreterSandbox = None
