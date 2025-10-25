@@ -146,9 +146,14 @@ class E2BSandboxManager:
         await self._ensure_minimum_pool()
 
         # Start health check loop
-        self._health_check_task = asyncio.create_task(self._health_check_loop())
+        self._health_check_task = asyncio.create_task(
+            self._health_check_loop()
+        )
 
-        self.logger.info(f"E2B Sandbox Manager started with pool size {len(self._pool)}")
+        pool_size = len(self._pool)
+        self.logger.info(
+            f"E2B Sandbox Manager started with pool size {pool_size}"
+        )
 
     async def stop(self):
         """Stop the sandbox manager and cleanup resources."""
@@ -196,8 +201,11 @@ class E2BSandboxManager:
         async with self._pool_lock:
             # Find healthy sandbox with available connections
             for instance in self._pool.values():
-                if (instance.status == 'healthy' and
-                    instance.active_connections < self.config.max_concurrent_per_sandbox):
+                if (
+                    instance.status == 'healthy'
+                    and instance.active_connections
+                    < self.config.max_concurrent_per_sandbox
+                ):
                     return instance
 
             # No available sandbox, create new one
