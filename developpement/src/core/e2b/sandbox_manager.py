@@ -185,7 +185,10 @@ class E2BSandboxManager:
                 # Use custom template via generic E2B SDK
                 # (v2: Sandbox.create, API key comes from env)
                 tmpl = self.config.template_id
-                sandbox = GenericSandbox.create(tmpl)
+                sandbox = GenericSandbox(
+                    template=tmpl,
+                    api_key=self.config.api_key or None,
+                )
             else:
                 # Fallback to Code Interpreter template
                 if not E2B_CI_AVAILABLE or CodeInterpreterSandbox is None:
