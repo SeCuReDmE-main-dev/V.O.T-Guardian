@@ -61,6 +61,45 @@ class SandboxInstance:
     status: str  # 'healthy', 'degraded', 'dead'
 
 
+def run_python_code_in_sandbox(
+    sandbox: Any,
+    code: str,
+    python_bin: str = 'python3',
+) -> Dict[str, Any]:
+    """Execute Python code inside an E2B sandbox using the v2 API."""
+    result: Dict[str, Any] = {
+        'stdout': '',
+        'stderr': '',
+        'exit_code': None,
+        'error': None,
+    }
+
+    try:
+        if hasattr(sandbox, 'commands') and hasattr(sandbox.commands, 'run'):
+            response = sandbox.commands.run([python_bin, '-c', code])
+            result['stdout'] = getattr(response, 'stdout', '') or ''
+            result['stderr'] = getattr(response, 'stderr', '') or ''
+            result['exit_code'] = getattr(response, 'exit_code', None)
+        elif hasattr(sandbox, 'run_code'):
+            response = sandbox.run_code(code)
+            logs = getattr(getattr(response, 'logs', None), 'stdout', None)
+            result['stdout'] = '\n'.join(logs) if logs else (
+                getattr(response, 'text', '') or ''
+            )
+            result['stderr'] = getattr(
+                getattr(response, 'logs', None), 'stderr', []
+            )
+            if isinstance(result['stderr'], list):
+                result['stderr'] = '\n'.join(result['stderr'])
+            result['exit_code'] = 0
+        else:
+            raise AttributeError('Sandbox does not support command execution')
+    except Exception as exc:  # pragma: no cover
+        result['error'] = str(exc)
+
+    return result
+
+
 class E2BSandboxManager:
     """
     Manages a pool of E2B sandboxes for audio analysis.
