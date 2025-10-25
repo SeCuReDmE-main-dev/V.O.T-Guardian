@@ -148,10 +148,12 @@ def analyze_audio():
             # Allow internet and extend timeout to handle pip installs
             sandbox = None
             try:
-                # Prefer custom template if configured and generic SDK is available
-                use_generic = bool(getattr(e2b_manager.config, 'template_id', None)) and GenericE2BSandbox is not None
+                use_generic = (
+                    bool(getattr(e2b_manager.config, 'template_id', None))
+                    and GenericE2BSandbox is not None
+                )
+
                 if use_generic:
-                    # e2b SDK v2 uses Sandbox.create and reads API key from env
                     tmpl = (
                         e2b_manager.config.template_id
                         or 'vot-guardian-cpu-mid'
@@ -161,50 +163,66 @@ def analyze_audio():
                         api_key=e2b_manager.config.api_key or None,
                     )
                 else:
-                    # Fallback to Code Interpreter sandbox (legacy SDK)
+                    if E2BSandbox is None:
+                        raise RuntimeError(
+                            "Code Interpreter SDK not available"
+                        )
                     sandbox = E2BSandbox(
                         api_key=e2b_manager.config.api_key,
                         allow_internet_access=True,
                         timeout=max(300, e2b_manager.config.sandbox_timeout),
                     )
 
-                # Write file into sandbox FS
-                await asyncio.get_event_loop().run_in_executor(
+                loop = asyncio.get_running_loop()
+                await loop.run_in_executor(
                     None,
-                    lambda: sandbox.files.write('input_audio.bin', data)
+                    lambda: sandbox.files.write('input_audio.bin', data),
                 )
 
-                # 1) Install dependencies (skip when using template)
+                def format_run_output(run_result: dict) -> str:
+                    if not run_result:
+                        return ''
+                    if run_result.get('error'):
+                        return f"error: {run_result['error']}"
+                    text = (run_result.get('stdout') or '').strip()
+                    if not text and run_result.get('stderr'):
+                        text = str(run_result['stderr']).strip()
+                    exit_code = run_result.get('exit_code')
+                    if exit_code not in (0, None):
+                        suffix = f"exit_code={exit_code}"
+                        text = f"{text}\n{suffix}" if text else suffix
+                    return text
+
                 if use_generic:
-                    install_out = "skipped (using E2B template)"
+                    install_result = {
+                        'stdout': 'skipped (using E2B template)',
+                        'stderr': '',
+                        'exit_code': None,
+                        'error': None,
+                    }
                 else:
                     install_code = (
-                        "import sys, subprocess\n"
+                        "import subprocess, sys\n"
                         "pkgs = ['mindsdb', 'librosa', 'torch']\n"
                         "print('Installing packages:', pkgs)\n"
-                        "args = [sys.executable, '-m', 'pip', 'install'] + pkgs\n"
-                        "proc = subprocess.run(args, capture_output=True,\n"
-                        "    text=True)\n"
+                        "cmd = [sys.executable, '-m', 'pip', 'install', *pkgs]\n"
+                        "proc = subprocess.run(cmd, capture_output=True, text=True)\n"
                         "print('pip returncode:', proc.returncode)\n"
                         "print('--- pip stdout ---')\n"
                         "print(proc.stdout)\n"
                         "print('--- pip stderr ---')\n"
                         "print(proc.stderr)\n"
                     )
-                    loop = asyncio.get_event_loop()
-                    install_res = await loop.run_in_executor(
-                        None, lambda: sandbox.run_code(install_code)
+                    install_result = await loop.run_in_executor(
+                        None,
+                        lambda: run_python_code_in_sandbox(
+                            sandbox,
+                            install_code,
+                        ),
                     )
-                    # Prefer captured stdout logs for print output
-                    _ilog = getattr(install_res, 'logs', None)
-                    if _ilog and getattr(_ilog, 'stdout', None):
-                        install_out = "\n".join(_ilog.stdout)
-                    else:
-                        install_out = (
-                            getattr(install_res, 'text', '') or ''
-                        ).strip()
 
-                # 2) Execute probe script inside sandbox
+                install_out = format_run_output(install_result)
+
                 probe_code = (
                     "print('Importing libraries...')\n"
                     "import importlib\n"
@@ -213,8 +231,8 @@ def analyze_audio():
                     "    try:\n"
                     "        importlib.import_module(m)\n"
                     "        print(f'Imported {m}')\n"
-                    "    except Exception as e:\n"
-                    "        print(f'Failed to import {m}: {e}')\n"
+                    "    except Exception as exc:\n"
+                    "        print(f'Failed to import {m}: {exc}')\n"
                     "print('Reading input file...')\n"
                     "with open('input_audio.bin','rb') as f:\n"
                     "    audio_bytes = f.read()\n"
@@ -222,16 +240,22 @@ def analyze_audio():
                     "print('Connexion à MindsDB...')\n"
                     "print('OK: Simulation de connexion effectuée.')\n"
                 )
-                probe_res = await asyncio.get_event_loop().run_in_executor(
-                    None, lambda: sandbox.run_code(probe_code)
+                probe_result = await loop.run_in_executor(
+                    None,
+                    lambda: run_python_code_in_sandbox(sandbox, probe_code),
                 )
-                _plog = getattr(probe_res, 'logs', None)
-                if _plog and getattr(_plog, 'stdout', None):
-                    probe_out = "\n".join(_plog.stdout)
-                else:
-                    probe_out = (getattr(probe_res, 'text', '') or '').strip()
+                probe_out = format_run_output(probe_result)
 
-                return {"install_stdout": install_out, "stdout": probe_out}
+                error_msg = (
+                    install_result.get('error')
+                    or probe_result.get('error')
+                )
+
+                return {
+                    "install_stdout": install_out,
+                    "stdout": probe_out,
+                    "error": error_msg,
+                }
             except Exception as se:  # pragma: no cover
                 logger.error(f"Sandbox probe error: {se}")
                 return {"install_stdout": "", "stdout": "", "error": str(se)}
