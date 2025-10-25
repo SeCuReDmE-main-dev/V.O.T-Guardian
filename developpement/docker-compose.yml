@@ -54,6 +54,7 @@ services:
       context: .
       dockerfile: Dockerfile.mindsdb 
     container_name: vot-mindsdb
+    user: "0:0"
     restart: unless-stopped
     ports:
       - "47334:47334"  # API port
@@ -63,11 +64,11 @@ services:
     volumes:
       - mindsdb_data:/var/lib/mindsdb
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:47334/ || exit 1"]
-      interval: 30s
+      test: ["CMD-SHELL", "curl -sf http://127.0.0.1:47334/ >/dev/null || exit 1"]
+      interval: 20s
       timeout: 10s
-      retries: 3
-      start_period: 60s
+      retries: 10
+      start_period: 120s
 
   # ----------------------------------------------
   # Redis Cache (Session Store & Caching)

@@ -1,10 +1,36 @@
 # Dockerfile.mindsdb
-# Construit sur l'image officielle de MindsDB pour ajouter les dépendances Whisper.
+# MindsDB runtime with OpenAI Whisper preinstalled and healthcheck tools.
+# Base image: custom jeansecuredme/vot-mindsdb-whisper:latest (should derive from python:3.10-slim)
+# Adds:
+# - ffmpeg, libsndfile1 (audio backends for whisper / librosa)
+# - curl (for container healthcheck)
+# - openai-whisper (pinned) and tiktoken
+# - environment attempting to bind HTTP/MySQL to 0.0.0.0 so ports are reachable
 
 FROM jeansecuredme/vot-mindsdb-whisper:latest
 
-# CORRECTION CRITIQUE (Identifiée dans les logs d'hier) :
-# Ajoute les dépendances Python nécessaires pour le moteur MindsDB 'whisper' 
-# et débloque l'étape 3 du plan.
-RUN python -m pip install --no-cache-dir \
-    "tiktoken>=0.3.0"
+USER root
+
+# System deps for audio + curl for healthcheck
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ffmpeg \
+    libsndfile1 \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Ensure pip works on slim bases and install Python deps
+RUN python -m ensurepip --upgrade || true && \
+    python -m pip install --upgrade --no-cache-dir "pip<25" setuptools wheel && \
+    python -m pip install --no-cache-dir \
+      openai-whisper==20231117 \
+      "tiktoken>=0.3.0"
+
+# Try to make MindsDB bind to all interfaces (best-effort vars)
+ENV MINDSDB_HTTP_HOST=0.0.0.0 \
+    MINDSDB_GUI_HOST=0.0.0.0 \
+    MINDSDB_MYSQL_HOST=0.0.0.0
+
+# Expose ports for documentation clarity (compose maps them)
+EXPOSE 47334 47335
+
+USER 1000

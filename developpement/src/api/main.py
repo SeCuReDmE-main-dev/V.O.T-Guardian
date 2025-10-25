@@ -36,10 +36,15 @@ except Exception:
     # python-dotenv not installed or other issue; continue without it
     pass
 try:
-    # Direct E2B SDK import for one-off sandboxes with internet access
+    # Direct E2B SDK import for one-off sandboxes with internet access (Code Interpreter)
     from e2b_code_interpreter import Sandbox as E2BSandbox
 except Exception:  # pragma: no cover
     E2BSandbox = None
+try:
+    # Generic E2B SDK that supports custom templates
+    from e2b import Sandbox as GenericE2BSandbox  # type: ignore
+except Exception:  # pragma: no cover
+    GenericE2BSandbox = None
 from werkzeug.exceptions import BadRequest
 
 # Import core modules
@@ -130,7 +135,7 @@ def analyze_audio():
             Create a fresh sandbox with internet,
             pip install deps, run probe script, return outputs.
             """
-            if E2BSandbox is None:
+            if E2BSandbox is None and GenericE2BSandbox is None:
                 return {
                     "stdout": "E2B SDK not available",
                     "install_stdout": "",
@@ -140,12 +145,22 @@ def analyze_audio():
             # Allow internet and extend timeout to handle pip installs
             sandbox = None
             try:
-                # e2b_code_interpreter Sandbox is instantiated directly
-                sandbox = E2BSandbox(
-                    api_key=e2b_manager.config.api_key,
-                    allow_internet_access=True,
-                    timeout=max(300, e2b_manager.config.sandbox_timeout),
-                )
+                # Prefer custom template if configured and generic SDK is available
+                use_generic = bool(getattr(e2b_manager.config, 'template_id', None)) and GenericE2BSandbox is not None
+                if use_generic:
+                    sandbox = GenericE2BSandbox(
+                        api_key=e2b_manager.config.api_key,
+                        template=e2b_manager.config.template_id,
+                        allow_internet_access=True,
+                        timeout=max(300, e2b_manager.config.sandbox_timeout),
+                    )
+                else:
+                    # Fallback to Code Interpreter sandbox
+                    sandbox = E2BSandbox(
+                        api_key=e2b_manager.config.api_key,
+                        allow_internet_access=True,
+                        timeout=max(300, e2b_manager.config.sandbox_timeout),
+                    )
 
                 # Write file into sandbox FS
                 await asyncio.get_event_loop().run_in_executor(

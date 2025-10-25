@@ -398,10 +398,16 @@ VITE_SENTRY_DSN=your-sentry-dsn
 ### Phase 3: Advanced Features (Week 4)
 - [ ] WebSocket integration for real-time updates
 - [ ] Advanced data visualization
-- [ ] Accessibility testing and compliance
-- [ ] Performance optimization
 
+---
+
+## 👥 Contributors
+
+- Lead Architect: Jean-Sébastien Beaulieu
+- Senior Coder: GitHub Copilot (in comitance with Supernova)
+ 
 ### Phase 4: Production Readiness (Week 5)
+
 - [ ] Comprehensive testing suite
 - [ ] Deployment to Vercel
 - [ ] Monitoring and analytics setup
@@ -413,11 +419,11 @@ VITE_SENTRY_DSN=your-sentry-dsn
 
 ### Key Resources
 
-- **Vue.js Documentation:** https://vuejs.org/guide/
-- **Tailwind CSS Docs:** https://tailwindcss.com/docs
-- **ApexCharts Guide:** https://apexcharts.com/docs/vue-charts/
-- **Vite Documentation:** https://vitejs.dev/guide/
-- **WCAG Guidelines:** https://www.w3.org/WAI/WCAG22/quickref/
+- [Vue.js Documentation](https://vuejs.org/guide/)
+- [Tailwind CSS Docs](https://tailwindcss.com/docs)
+- [ApexCharts Guide](https://apexcharts.com/docs/vue-charts/)
+- [Vite Documentation](https://vitejs.dev/guide/)
+- [WCAG Guidelines](https://www.w3.org/WAI/WCAG22/quickref/)
 
 ### Architecture Decision Records
 
@@ -428,10 +434,12 @@ This document serves as the single source of truth for frontend architecture dec
 ## 📋 Acknowledgments
 
 **Technical Analysis Contributors:**
+
 - **Copilot AI** - Comprehensive UX/UI framework analysis and accessibility strategy
 - **Gemini AI** - Human-centered design philosophy and enterprise architecture insights
 - **Perplexity AI** - Practical technology comparison and implementation guidance
 - **Supernova (Kilo Code)** - Technical architecture synthesis and final recommendations
+
 
 ## ⚖️ Legal Disclaimers
 
@@ -442,28 +450,35 @@ This document serves as the single source of truth for frontend architecture dec
 **AI Advisory Role:** The AI assistants (Supernova/Kilo Code, Gemini AI, Perplexity AI, Copilot AI) serve as technical advisors and consultants only. They provide recommendations, analysis, and technical insights, but maintain no ownership claims over the project or its derivatives.
 
 **Decision Authority:** The project owner retains exclusive authority over:
+
 - Final architecture decisions
 - Technology stack choices
 - Implementation priorities
 - Design directions
 - Business strategy
 
+
 **Liability Limitation:** AI-provided recommendations are for informational purposes only and should not be construed as professional advice, legal counsel, or guaranteed outcomes.
 
 ### Usage Rights
 
 This document may be used by the project owner for:
+
 - Internal development planning
 - Team onboarding and education
 - Technical documentation
 - Project management and tracking
 
+
 **External Usage:** Any external use, reproduction, or distribution of this document requires explicit written permission from the project owner.
 
 **Approved by:**
+
 - **Jean-Sébastien Beaulieu** - Project Owner & Final Decision Authority
+- **Senior Coder:** GitHub Copilot (in comitance with Supernova)
 
 **AI Advisors:**
+
 - **Supernova (Kilo Code)** - Lead Technical Architect
 - **Gemini AI** - UX/UI Specialist
 - **Perplexity AI** - Technology Analyst

@@ -5,6 +5,8 @@
 
 # 1. E2B Code Interpreter - For secure sandbox isolation
 e2b-code-interpreter==1.0.0
+# Generic E2B SDK (required to launch custom templates)
+e2b
 
 # 2. Datadog API Client - For monitoring and observability
 datadog-api-client==2.16.0

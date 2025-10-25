@@ -117,6 +117,10 @@ MINDSDB_URL=http://localhost:47334
 # Application Settings
 API_SECRET_KEY=your_secure_secret_key
 ML_MODEL_PATH=/models/vot-cnn-lstm-v2.1.pth
+ 
+# (Recommended) Use your pre-baked E2B template for instant sandbox boots
+# Get this value from `e2b templates publish` output
+E2B_TEMPLATE_ID=tpl_xxxxxxxxxxxxxxx
 ```
 
 ### 4. Start Databases
@@ -393,7 +397,12 @@ This project is proprietary software developed for protecting elderly individual
 - **Security Innovation**: Protocole Tenebris for privacy-preserving voice analysis
 - **Mission**: Protecting vulnerable elderly populations from AI-generated fraud
 
-## 📞 Support
+## � Contributors
+
+- Lead Architect: Jean-Sébastien Beaulieu
+- Senior Coder: GitHub Copilot (in comitance with Supernova)
+
+## �📞 Support
 
 For technical support or questions:
 

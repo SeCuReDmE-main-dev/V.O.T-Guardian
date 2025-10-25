@@ -19,16 +19,23 @@ import logging
 import os
 import time
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Any
+from typing import Dict, Optional, Any
 from contextlib import asynccontextmanager
 
-# Import E2B SDK
+# Import E2B SDKs (generic + code interpreter) optionally
 try:
-    from e2b_code_interpreter import Sandbox
-    E2B_AVAILABLE = True
-except ImportError:
-    E2B_AVAILABLE = False
-    Sandbox = None
+    from e2b import Sandbox as GenericSandbox  # type: ignore
+    E2B_GENERIC_AVAILABLE = True
+except Exception:  # pragma: no cover
+    GenericSandbox = None
+    E2B_GENERIC_AVAILABLE = False
+
+try:
+    from e2b_code_interpreter import Sandbox as CodeInterpreterSandbox  # type: ignore
+    E2B_CI_AVAILABLE = True
+except Exception:  # pragma: no cover
+    CodeInterpreterSandbox = None
+    E2B_CI_AVAILABLE = False
 
 
 @dataclass
@@ -40,13 +47,14 @@ class SandboxConfig:
     sandbox_timeout: int = 30
     health_check_interval: int = 30
     max_concurrent_per_sandbox: int = 3
+    template_id: Optional[str] = None
 
 
 @dataclass
 class SandboxInstance:
     """Represents an E2B sandbox instance."""
     id: str
-    sandbox: Sandbox
+    sandbox: Any
     created_at: float
     last_used: float
     active_connections: int
@@ -87,7 +95,8 @@ class E2BSandboxManager:
             min_pool_size=int(os.getenv('E2B_POOL_MIN_SIZE', '5')),
             max_pool_size=int(os.getenv('E2B_POOL_MAX_SIZE', '50')),
             sandbox_timeout=int(os.getenv('E2B_SANDBOX_TIMEOUT', '30')),
-            health_check_interval=int(os.getenv('E2B_HEALTH_CHECK_INTERVAL', '30'))
+            health_check_interval=int(os.getenv('E2B_HEALTH_CHECK_INTERVAL', '30')),
+            template_id=(os.getenv('E2B_TEMPLATE_ID') or None),
         )
 
     async def start(self):
@@ -167,15 +176,24 @@ class E2BSandboxManager:
     async def _create_sandbox(self) -> SandboxInstance:
         """Create a new E2B sandbox."""
         try:
-            # Create sandbox with security constraints (if E2B is available)
-            if not E2B_AVAILABLE or not Sandbox:
-                raise Exception("E2B SDK not available")
-
-            sandbox = Sandbox.create(
-                api_key=self.config.api_key,
-                allow_internet_access=False,  # Critical for Tenebris
-                timeout=self.config.sandbox_timeout
-            )
+            # Create sandbox with security constraints
+            if self.config.template_id and E2B_GENERIC_AVAILABLE and GenericSandbox is not None:
+                # Use custom template via generic E2B SDK
+                sandbox = GenericSandbox(
+                    api_key=self.config.api_key,
+                    template=self.config.template_id,
+                    allow_internet_access=False,  # Critical for Tenebris
+                    timeout=self.config.sandbox_timeout,
+                )
+            else:
+                # Fallback to Code Interpreter template
+                if not E2B_CI_AVAILABLE or CodeInterpreterSandbox is None:
+                    raise Exception("E2B SDK not available (generic or code interpreter)")
+                sandbox = CodeInterpreterSandbox(
+                    api_key=self.config.api_key,
+                    allow_internet_access=False,  # Critical for Tenebris
+                    timeout=self.config.sandbox_timeout,
+                )
 
             # Create instance record
             instance = SandboxInstance(
@@ -272,7 +290,15 @@ class E2BSandboxManager:
 
             try:
                 # Close sandbox connection
-                instance.sandbox.close()
+                try:
+                    # Prefer kill() if available on the SDK
+                    if hasattr(instance.sandbox, 'kill'):
+                        instance.sandbox.kill()
+                    elif hasattr(instance.sandbox, 'close'):
+                        instance.sandbox.close()
+                except Exception:
+                    # Ensure best-effort cleanup
+                    pass
 
                 # Remove from pool
                 del self._pool[sandbox_id]

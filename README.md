@@ -370,7 +370,12 @@ This project is proprietary software developed for protecting elderly individual
 - **Security Innovation**: Protocole Tenebris for privacy-preserving voice analysis
 - **Mission**: Protecting vulnerable elderly populations from AI-generated fraud
 
-## 📞 Support
+## � Contributors
+
+- Lead Architect: Jean-Sébastien Beaulieu
+- Senior Coder: GitHub Copilot (in comitance with Supernova)
+
+## �📞 Support
 
 For technical support or questions:
 
