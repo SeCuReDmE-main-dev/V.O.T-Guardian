@@ -74,8 +74,10 @@ RUN echo "----- BEGIN sandbox-core-requirements.txt -----" && \
     echo "\n----- END sandbox-core-requirements.txt -----" && \
     python -m pip install --no-cache-dir -r /opt-vot-guardian/sandbox-core-requirements.txt
 
-# Add MindsDB SDK client and Whisper speech recognition (requires ffmpeg present above)
-RUN python -m pip install --no-cache-dir mindsdb_sdk openai-whisper==20231117
+# Install MindsDB client and Whisper for audio processing
+RUN pip install --no-cache-dir \
+    mindsdb_sdk \
+    openai-whisper
 
 # Do NOT install the app’s requirements here to avoid dependency conflicts and speed up template builds.
 # Your app can install its specific requirements at runtime or in a lighter layer.

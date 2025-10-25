@@ -78,8 +78,10 @@ RUN python -m pip install --no-cache-dir -r /opt/vot-guardian/sandbox-core-requi
 # Finally, install your app’s requirements
 RUN python -m pip install --no-cache-dir -r /opt/vot-guardian/requirements.txt
 
-# Install MindsDB SDK client and Whisper inference library for audio processing
-RUN python -m pip install --no-cache-dir mindsdb_sdk openai-whisper==20231117
+# Install MindsDB client and Whisper for audio processing
+RUN pip install --no-cache-dir \
+    mindsdb_sdk \
+    openai-whisper
 
 # Optional: sanity check (kept as a build-time no-op; uncomment to validate during build)
 # RUN python - << 'PY'
