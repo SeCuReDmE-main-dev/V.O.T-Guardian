@@ -33,6 +33,23 @@ RUN python -m ensurepip --upgrade || true && \
 RUN pip install --no-cache-dir \
     mindsdb_sdk \
     openai-whisper \
-    && python -c "exec(\"\"\"import importlib\nimport pathlib\nfrom importlib import metadata as md\nsdk = importlib.import_module('mindsdb_sdk')\nsite_packages = pathlib.Path(sdk.__file__).resolve().parent.parent\nalias_pkg = site_packages / 'mindsdb'\nalias_pkg.mkdir(exist_ok=True)\nalias_init = alias_pkg / '__init__.py'\ntry:\n    version = sdk.__version__\nexcept AttributeError:\n    try:\n        version = md.version('mindsdb_sdk')\n    except Exception:\n        version = '0.0.0'\nalias_init.write_text(f\"import mindsdb_sdk as _sdk\\\\nfrom mindsdb_sdk import *  # noqa: F401,F403\\\\n__all__ = [name for name in globals() if not name.startswith('_')]\\\\n__version__ = '{version}'\\\\n\")\n\"\"\")"
+    && python -c 'exec("""import importlib
+import pathlib
+from importlib import metadata as md
+
+sdk = importlib.import_module("mindsdb_sdk")
+site_packages = pathlib.Path(sdk.__file__).resolve().parent.parent
+alias_pkg = site_packages / "mindsdb"
+alias_pkg.mkdir(exist_ok=True)
+alias_init = alias_pkg / "__init__.py"
+try:
+    version = sdk.__version__
+except AttributeError:
+    try:
+        version = md.version("mindsdb_sdk")
+    except Exception:
+        version = "0.0.0"
+alias_init.write_text(f"import mindsdb_sdk as _sdk\\nfrom mindsdb_sdk import *  # noqa: F401,F403\\n__all__ = [name for name in globals() if not name.startswith(\"_\")]\\n__version__ = \"{version}\"\\n")
+""")'
 
 USER user
