@@ -29,4 +29,9 @@ RUN python -m ensurepip --upgrade || true && \
     python -m pip install --no-cache-dir torch==2.1.0 --index-url https://download.pytorch.org/whl/cpu && \
     python -m pip install --no-cache-dir numpy==1.26.4
 
+# Install MindsDB client and Whisper for audio processing
+RUN pip install --no-cache-dir \
+    mindsdb_sdk \
+    openai-whisper
+
 USER user
