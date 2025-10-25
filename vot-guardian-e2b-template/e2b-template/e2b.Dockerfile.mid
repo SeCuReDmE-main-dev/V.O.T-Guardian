@@ -22,30 +22,7 @@ RUN set -eux \
     && pip install --no-cache-dir \
         mindsdb_sdk \
         openai-whisper \
-    && python -c "import importlib, pathlib, textwrap; exec(textwrap.dedent('''\\
-import importlib
-import pathlib
-
-sdk = importlib.import_module(\"mindsdb_sdk\")
-site_packages = pathlib.Path(sdk.__file__).resolve().parent.parent
-alias_pkg = site_packages / \"mindsdb\"
-alias_pkg.mkdir(exist_ok=True)
-alias_init = alias_pkg / \"__init__.py\"
-
-try:
-    metadata = importlib.import_module(\"importlib.metadata\")
-    version = metadata.version(\"mindsdb_sdk\")
-except Exception:
-    version = getattr(sdk, \"__version__\", \"0.0.0\")
-
-alias_init.write_text(
-    \"import mindsdb_sdk as _sdk\\n\"
-    \"_globals = {name: getattr(_sdk, name) for name in dir(_sdk) if not name.startswith('_')}\\n\"
-    \"locals().update(_globals)\\n\"
-    \"__all__ = [name for name in _globals]\\n\"
-    f\"__version__ = '{version}'\\\\n\"
-)
-'''))"
+    && python -c "import importlib, importlib.util, pathlib; sdk = importlib.import_module('mindsdb_sdk'); site_packages = pathlib.Path(sdk.__file__).resolve().parent.parent; alias_pkg = site_packages / 'mindsdb'; alias_pkg.mkdir(exist_ok=True); alias_init = alias_pkg / '__init__.py'; metadata_module = importlib.import_module('importlib.metadata') if importlib.util.find_spec('importlib.metadata') else None; version = metadata_module.version('mindsdb_sdk') if metadata_module else getattr(sdk, '__version__', '0.0.0'); alias_body = '\\n'.join(['import mindsdb_sdk as _sdk', '_globals = {name: getattr(_sdk, name) for name in dir(_sdk) if not name.startswith(\\'_'\\)}', 'locals().update(_globals)', '__all__ = [name for name in _globals]', \"__version__ = '\" + version + \"'\"]) + '\\n'; alias_init.write_text(alias_body)"
 
 #
 # Create non-root user (E2B best practice)
