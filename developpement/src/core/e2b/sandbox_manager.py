@@ -19,6 +19,7 @@ import importlib
 import logging
 import os
 import time
+import uuid
 from dataclasses import dataclass
 from typing import Dict, Optional, Any
 from contextlib import asynccontextmanager
@@ -79,7 +80,25 @@ def run_python_code_in_sandbox(
 
     try:
         if hasattr(sandbox, 'commands') and hasattr(sandbox.commands, 'run'):
-            response = sandbox.commands.run([python_bin, '-c', code])
+            try:
+                response = sandbox.commands.run([python_bin, '-c', code])
+            except Exception as run_exc:  # fallback when list execution fails
+                temp_path = f"/tmp/vot_guardian_{uuid.uuid4().hex}.py"
+                if not hasattr(sandbox, 'files') or not hasattr(
+                    sandbox.files, 'write'
+                ):
+                    raise run_exc
+                try:
+                    sandbox.files.write(temp_path, code)
+                    response = sandbox.commands.run([python_bin, temp_path])
+                except Exception:
+                    raise run_exc
+                finally:
+                    try:
+                        if hasattr(sandbox.files, 'delete'):
+                            sandbox.files.delete(temp_path)
+                    except Exception:
+                        pass
             result['stdout'] = getattr(response, 'stdout', '') or ''
             result['stderr'] = getattr(response, 'stderr', '') or ''
             exit_code = getattr(response, 'exit_code', None)
