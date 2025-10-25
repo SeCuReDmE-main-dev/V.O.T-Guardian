@@ -148,14 +148,14 @@ def analyze_audio():
                 # Prefer custom template if configured and generic SDK is available
                 use_generic = bool(getattr(e2b_manager.config, 'template_id', None)) and GenericE2BSandbox is not None
                 if use_generic:
-                    sandbox = GenericE2BSandbox(
-                        api_key=e2b_manager.config.api_key,
-                        template=e2b_manager.config.template_id,
-                        allow_internet_access=True,
-                        timeout=max(300, e2b_manager.config.sandbox_timeout),
+                    # e2b SDK v2 uses Sandbox.create and reads API key from env
+                    tmpl = (
+                        e2b_manager.config.template_id
+                        or 'vot-guardian-cpu-mid'
                     )
+                    sandbox = GenericE2BSandbox.create(tmpl)
                 else:
-                    # Fallback to Code Interpreter sandbox
+                    # Fallback to Code Interpreter sandbox (legacy SDK)
                     sandbox = E2BSandbox(
                         api_key=e2b_manager.config.api_key,
                         allow_internet_access=True,
@@ -168,34 +168,42 @@ def analyze_audio():
                     lambda: sandbox.files.write('input_audio.bin', data)
                 )
 
-                # 1) Install dependencies inside the sandbox
-                install_code = (
-                    "import sys, subprocess\n"
-                    "pkgs = ['mindsdb', 'librosa', 'torch']\n"
-                    "print('Installing packages:', pkgs)\n"
-                    "proc = subprocess.run([sys.executable, '-m', 'pip', "
-                    "'install', *pkgs], capture_output=True, text=True)\n"
-                    "print('pip returncode:', proc.returncode)\n"
-                    "print('--- pip stdout ---')\n"
-                    "print(proc.stdout)\n"
-                    "print('--- pip stderr ---')\n"
-                    "print(proc.stderr)\n"
-                )
-                install_res = await asyncio.get_event_loop().run_in_executor(
-                    None, lambda: sandbox.run_code(install_code)
-                )
-                # Prefer captured stdout logs for print output
-                _ilog = getattr(install_res, 'logs', None)
-                if _ilog and getattr(_ilog, 'stdout', None):
-                    install_out = "\n".join(_ilog.stdout)
+                # 1) Install dependencies (skip when using template)
+                if use_generic:
+                    install_out = "skipped (using E2B template)"
                 else:
-                    install_out = (getattr(install_res, 'text', '') or '').strip()
+                    install_code = (
+                        "import sys, subprocess\n"
+                        "pkgs = ['mindsdb', 'librosa', 'torch']\n"
+                        "print('Installing packages:', pkgs)\n"
+                        "args = [sys.executable, '-m', 'pip', 'install'] + pkgs\n"
+                        "proc = subprocess.run(args, capture_output=True,\n"
+                        "    text=True)\n"
+                        "print('pip returncode:', proc.returncode)\n"
+                        "print('--- pip stdout ---')\n"
+                        "print(proc.stdout)\n"
+                        "print('--- pip stderr ---')\n"
+                        "print(proc.stderr)\n"
+                    )
+                    loop = asyncio.get_event_loop()
+                    install_res = await loop.run_in_executor(
+                        None, lambda: sandbox.run_code(install_code)
+                    )
+                    # Prefer captured stdout logs for print output
+                    _ilog = getattr(install_res, 'logs', None)
+                    if _ilog and getattr(_ilog, 'stdout', None):
+                        install_out = "\n".join(_ilog.stdout)
+                    else:
+                        install_out = (
+                            getattr(install_res, 'text', '') or ''
+                        ).strip()
 
                 # 2) Execute probe script inside sandbox
                 probe_code = (
                     "print('Importing libraries...')\n"
                     "import importlib\n"
-                    "for m in ['mindsdb', 'librosa', 'torch']:\n"
+                    "modules = ['librosa', 'torch', 'mindsdb']\n"
+                    "for m in modules:\n"
                     "    try:\n"
                     "        importlib.import_module(m)\n"
                     "        print(f'Imported {m}')\n"

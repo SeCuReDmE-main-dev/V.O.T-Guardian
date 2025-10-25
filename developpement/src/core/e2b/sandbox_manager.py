@@ -178,13 +178,9 @@ class E2BSandboxManager:
         try:
             # Create sandbox with security constraints
             if self.config.template_id and E2B_GENERIC_AVAILABLE and GenericSandbox is not None:
-                # Use custom template via generic E2B SDK
-                sandbox = GenericSandbox(
-                    api_key=self.config.api_key,
-                    template=self.config.template_id,
-                    allow_internet_access=False,  # Critical for Tenebris
-                    timeout=self.config.sandbox_timeout,
-                )
+                # Use custom template via generic E2B SDK (v2: Sandbox.create, API key via env)
+                tmpl = self.config.template_id
+                sandbox = GenericSandbox.create(tmpl)
             else:
                 # Fallback to Code Interpreter template
                 if not E2B_CI_AVAILABLE or CodeInterpreterSandbox is None:
