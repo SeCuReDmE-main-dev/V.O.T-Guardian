@@ -85,7 +85,8 @@ class PostgreSQLClient:
         """Create database tables if they don't exist."""
         async with self.pool.acquire() as conn:
             # Analysis results table
-            await conn.execute("""
+            await conn.execute(
+                """
                 CREATE TABLE IF NOT EXISTS analysis_results (
                     id SERIAL PRIMARY KEY,
                     call_id VARCHAR(255) NOT NULL,
@@ -97,13 +98,18 @@ class PostgreSQLClient:
                     UNIQUE(call_id)
                 );
 
-                CREATE INDEX IF NOT EXISTS idx_analysis_results_call_id ON analysis_results(call_id);
-                CREATE INDEX IF NOT EXISTS idx_analysis_results_created_at ON analysis_results(created_at);
-                CREATE INDEX IF NOT EXISTS idx_analysis_results_prediction ON analysis_results(prediction);
-            """)
+                CREATE INDEX IF NOT EXISTS idx_analysis_results_call_id
+                    ON analysis_results(call_id);
+                CREATE INDEX IF NOT EXISTS idx_analysis_results_created_at
+                    ON analysis_results(created_at);
+                CREATE INDEX IF NOT EXISTS idx_analysis_results_prediction
+                    ON analysis_results(prediction);
+                """
+            )
 
             # Audit trail table
-            await conn.execute("""
+            await conn.execute(
+                """
                 CREATE TABLE IF NOT EXISTS audit_trail (
                     id SERIAL PRIMARY KEY,
                     event_type VARCHAR(100) NOT NULL,
@@ -114,13 +120,18 @@ class PostgreSQLClient:
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 );
 
-                CREATE INDEX IF NOT EXISTS idx_audit_trail_call_id ON audit_trail(call_id);
-                CREATE INDEX IF NOT EXISTS idx_audit_trail_event_type ON audit_trail(event_type);
-                CREATE INDEX IF NOT EXISTS idx_audit_trail_created_at ON audit_trail(created_at);
-            """)
+                CREATE INDEX IF NOT EXISTS idx_audit_trail_call_id
+                    ON audit_trail(call_id);
+                CREATE INDEX IF NOT EXISTS idx_audit_trail_event_type
+                    ON audit_trail(event_type);
+                CREATE INDEX IF NOT EXISTS idx_audit_trail_created_at
+                    ON audit_trail(created_at);
+                """
+            )
 
             # Model performance table
-            await conn.execute("""
+            await conn.execute(
+                """
                 CREATE TABLE IF NOT EXISTS model_performance (
                     id SERIAL PRIMARY KEY,
                     model_version VARCHAR(50) NOT NULL,
@@ -130,9 +141,12 @@ class PostgreSQLClient:
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 );
 
-                CREATE INDEX IF NOT EXISTS idx_model_performance_version ON model_performance(model_version);
-                CREATE INDEX IF NOT EXISTS idx_model_performance_created_at ON model_performance(created_at);
-            """)
+                CREATE INDEX IF NOT EXISTS idx_model_performance_version
+                    ON model_performance(model_version);
+                CREATE INDEX IF NOT EXISTS idx_model_performance_created_at
+                    ON model_performance(created_at);
+                """
+            )
 
     async def store_analysis_result(self, result: Dict[str, Any]):
         """Store analysis result in database."""
