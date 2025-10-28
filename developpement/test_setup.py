@@ -236,16 +236,6 @@ def main() -> int:
         print("3. 🗄️ Install databases (PostgreSQL, RethinkDB, MindsDB)")
         print("4. 🚀 Run: python -m src.api.main")
     else:
-        print("\nNext steps:")
-        print("1. 📝 Copy .env.example to .env")
-        print("2. 🔑 Get your API keys:")
-        print("   • E2B: https://e2b.dev")
-        print("   • Datadog: https://datadoghq.com")
-        print("   • Red Hat: https://developers.redhat.com")
-        print("3. 🗄️ Install databases (PostgreSQL, RethinkDB, MindsDB)")
-        print("4. 🚀 Run: python -m src.api.main")
-
-    else:
         print("⚠️ SOME TESTS FAILED")
         print("\nIssues to fix:")
 
@@ -256,11 +246,17 @@ def main() -> int:
 
         if missing_files:
             print(f"  • Missing files: {len(missing_files)} files")
-            for file in missing_files:
-                print(f"    - {file}")
+            for file_path in missing_files:
+                print(f"    - {file_path}")
 
-        if not deps_available:
-            print("  • Missing dependencies: install with 'pip install -r requirements.txt'")
+        if missing_env:
+            print(
+                "  • Missing environment placeholders: "
+                + ", ".join(missing_env)
+            )
+
+        if not config_ok and config_error:
+            print(f"  • Configuration error: {config_error}")
 
     print("\n🔗 For Red Hat API Key:")
     print("   Recommended: Red Hat Developer Subscription (FREE)")
