@@ -40,7 +40,7 @@ def main() -> None:
 
     from flask.testing import FlaskClient
 
-    from api.main import app, logger as api_logger  # type: ignore
+    from src.api.main import app, logger as api_logger  # type: ignore
 
     # Configure logging to ensure visibility during the manual run.
     logging.basicConfig(level=logging.DEBUG)
