@@ -15,7 +15,7 @@ class _StubModel:
         return self._logits
 
 
-@pytest.mark.anyio
+@pytest.mark.anyio("asyncio")
 async def test_predict_high_confidence_ai(monkeypatch):
     monkeypatch.setattr(MLPredictor, "load_model", lambda self: None)
 
@@ -40,7 +40,7 @@ async def test_predict_high_confidence_ai(monkeypatch):
     assert result["features_used"] == list(features.keys())
 
 
-@pytest.mark.anyio
+@pytest.mark.anyio("asyncio")
 async def test_predict_fallback_when_model_missing(monkeypatch):
     monkeypatch.setattr(MLPredictor, "load_model", lambda self: None)
 
