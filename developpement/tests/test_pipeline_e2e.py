@@ -153,9 +153,8 @@ def test_pipeline_e2e_persists_features(pipeline_client):
 
     assert payload["prediction"] == "AI"
     assert payload["confidence"] == pytest.approx(0.88, abs=1e-6)
-    stored_features = json.loads(
-        context["db_client"].last_analysis["features"]
-    )
+    features_blob = context["db_client"].last_analysis.get("features")
+    stored_features = json.loads(features_blob)
     assert stored_features == FEATURES
     assert context["ml_predictor"].invocations == 1
     assert context["ml_predictor"].seen_features == FEATURES
