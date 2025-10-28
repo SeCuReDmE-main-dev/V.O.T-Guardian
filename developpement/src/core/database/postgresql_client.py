@@ -179,7 +179,10 @@ class PostgreSQLClient:
             self.logger.error(f"Error storing analysis result: {e}")
             raise
 
-    async def get_analysis_result(self, call_id: str) -> Optional[Dict[str, Any]]:
+    async def get_analysis_result(
+        self,
+        call_id: str,
+    ) -> Optional[Dict[str, Any]]:
         """Retrieve analysis result from database."""
         try:
             async with self.pool.acquire() as conn:
@@ -198,14 +201,18 @@ class PostgreSQLClient:
                                 row['call_id'],
                             )
 
+                    processing_time = row['processing_time_ms']
+                    if processing_time is not None:
+                        processing_time = float(processing_time)
+
                     return {
                         'id': row['id'],
                         'call_id': row['call_id'],
                         'prediction': row['prediction'],
                         'confidence': float(row['confidence']),
                         'features': features,
-                        'processing_time_ms': float(row['processing_time_ms']) if row['processing_time_ms'] else None,
-                        'created_at': row['created_at'].isoformat()
+                        'processing_time_ms': processing_time,
+                        'created_at': row['created_at'].isoformat(),
                     }
 
         except Exception as e:
