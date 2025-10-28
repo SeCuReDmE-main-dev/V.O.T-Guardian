@@ -137,7 +137,8 @@ async def _persist_analysis_result(
     """Store analysis output and audit trail; failures are logged only."""
     try:
         await _ensure_db_connection()
-        features_payload = json.dumps(features)
+    # Store features as JSON text to satisfy asyncpg's JSONB parameter handling.
+    features_payload = json.dumps(features)
         await db_client.store_analysis_result({
             'call_id': response_payload['call_id'],
             'prediction': response_payload['prediction'],
