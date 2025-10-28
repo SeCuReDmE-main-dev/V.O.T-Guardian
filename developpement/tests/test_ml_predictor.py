@@ -7,6 +7,11 @@ from src.core.ml.predictor import MLPredictor, ModelConfig
 torch = pytest.importorskip("torch")
 
 
+@pytest.fixture
+def anyio_backend():
+    return "asyncio"
+
+
 class _StubModel:
     def __init__(self, logits):
         self._logits = logits
@@ -15,7 +20,7 @@ class _StubModel:
         return self._logits
 
 
-@pytest.mark.anyio("asyncio")
+@pytest.mark.anyio
 async def test_predict_high_confidence_ai(monkeypatch):
     monkeypatch.setattr(MLPredictor, "load_model", lambda self: None)
 
@@ -40,7 +45,7 @@ async def test_predict_high_confidence_ai(monkeypatch):
     assert result["features_used"] == list(features.keys())
 
 
-@pytest.mark.anyio("asyncio")
+@pytest.mark.anyio
 async def test_predict_fallback_when_model_missing(monkeypatch):
     monkeypatch.setattr(MLPredictor, "load_model", lambda self: None)
 
