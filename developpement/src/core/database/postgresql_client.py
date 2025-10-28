@@ -220,15 +220,33 @@ class PostgreSQLClient:
 
         return None
 
-    async def log_audit_event(self, event_type: str, call_id: Optional[str] = None,
-                            session_id: Optional[str] = None, metadata: Optional[Dict] = None):
+    async def log_audit_event(
+        self,
+        event_type: str,
+        call_id: Optional[str] = None,
+        session_id: Optional[str] = None,
+        metadata: Optional[Dict] = None,
+    ):
         """Log audit event to database."""
         try:
             async with self.pool.acquire() as conn:
-                await conn.execute("""
-                    INSERT INTO audit_trail (event_type, call_id, session_id, metadata, compliance_status)
+                await conn.execute(
+                    """
+                    INSERT INTO audit_trail (
+                        event_type,
+                        call_id,
+                        session_id,
+                        metadata,
+                        compliance_status
+                    )
                     VALUES ($1, $2, $3, $4, $5)
-                """, event_type, call_id, session_id, metadata or {}, 'COMPLIANT')
+                    """,
+                    event_type,
+                    call_id,
+                    session_id,
+                    metadata or {},
+                    'COMPLIANT',
+                )
 
         except Exception as e:
             self.logger.error(f"Error logging audit event: {e}")
