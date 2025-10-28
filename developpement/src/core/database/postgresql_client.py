@@ -14,6 +14,7 @@ Author: Jean-Sébastien Beaulieu
 """
 
 import os
+import json
 import logging
 import asyncpg
 from typing import Dict, List, Optional, Any
@@ -156,12 +157,22 @@ class PostgreSQLClient:
                 """, call_id)
 
                 if row:
+                    features = row['features']
+                    if isinstance(features, str):
+                        try:
+                            features = json.loads(features)
+                        except json.JSONDecodeError:
+                            self.logger.debug(
+                                "Failed to decode features JSON for call %s",
+                                row['call_id'],
+                            )
+
                     return {
                         'id': row['id'],
                         'call_id': row['call_id'],
                         'prediction': row['prediction'],
                         'confidence': float(row['confidence']),
-                        'features': row['features'],
+                        'features': features,
                         'processing_time_ms': float(row['processing_time_ms']) if row['processing_time_ms'] else None,
                         'created_at': row['created_at'].isoformat()
                     }
