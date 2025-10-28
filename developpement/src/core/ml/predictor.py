@@ -114,14 +114,17 @@ if TORCH_AVAILABLE and nn:
             """Forward pass through the network."""
             # CNN feature extraction
             cnn_out = self.cnn(x)  # (batch, 128, 1, time_steps)
-            cnn_out = cnn_out.squeeze(2).permute(0, 2, 1)  # (batch, time_steps, 128)
+            cnn_out = cnn_out.squeeze(2).permute(0, 2, 1)
+            # cnn_out shape: (batch, time_steps, 128)
 
             # LSTM temporal analysis
-            lstm_out, (h_n, c_n) = self.lstm(cnn_out)  # (batch, time_steps, 256*2)
+            lstm_out, (h_n, c_n) = self.lstm(cnn_out)
+            # lstm_out shape: (batch, time_steps, 256*2)
 
             # Attention mechanism
             attention_weights = torch.softmax(self.attention(lstm_out), dim=1)
-            context_vector = torch.sum(attention_weights * lstm_out, dim=1)  # (batch, 256*2)
+            context_vector = torch.sum(attention_weights * lstm_out, dim=1)
+            # context_vector shape: (batch, 256*2)
 
             # Classification
             logits = self.classifier(context_vector)  # (batch, num_classes)
@@ -175,7 +178,9 @@ class MLPredictor:
         # Model components
         self.model: Optional[CNNLSTMModel] = None
         self.device = self._get_device()
-        self.scaler = GradScaler() if (self.config.mixed_precision and TORCH_AVAILABLE and GradScaler) else None
+        self.scaler = None
+        if self.config.mixed_precision and TORCH_AVAILABLE and GradScaler:
+            self.scaler = GradScaler()
 
         # Model statistics
         self.prediction_count = 0
@@ -187,22 +192,33 @@ class MLPredictor:
     def _load_config(self) -> ModelConfig:
         """Load configuration from environment."""
         return ModelConfig(
-            model_path=os.getenv('ML_MODEL_PATH', '/models/vot-cnn-lstm-v2.1.pth'),
+            model_path=os.getenv(
+                'ML_MODEL_PATH',
+                '/models/vot-cnn-lstm-v2.1.pth',
+            ),
             use_gpu=os.getenv('CUDA_VISIBLE_DEVICES', '0') != '',
-            mixed_precision=os.getenv('ML_MIXED_PRECISION', 'true').lower() == 'true'
+            mixed_precision=(
+                os.getenv('ML_MIXED_PRECISION', 'true').lower() == 'true'
+            ),
         )
 
     def _get_device(self):
         """Get the appropriate device (GPU/CPU)."""
-        if TORCH_AVAILABLE and torch and self.config.use_gpu and torch.cuda.is_available():
+        if (
+            TORCH_AVAILABLE
+            and torch
+            and self.config.use_gpu
+            and torch.cuda.is_available()
+        ):
             device_id = int(os.getenv('CUDA_VISIBLE_DEVICES', '0'))
             return torch.device(f'cuda:{device_id}')
-        return 'cpu'  # Return string instead of torch.device when torch not available
+        # Return string instead of torch.device when torch not available.
+        return 'cpu'
 
     def load_model(self):
         """Load the trained model."""
         if not torch:
-            self.logger.warning("PyTorch not available, using mock predictions")
+            self.logger.warning("PyTorch unavailable; using mock predictions")
             return
 
         try:
@@ -214,11 +230,17 @@ class MLPredictor:
 
             # Load trained weights
             if os.path.exists(self.config.model_path):
-                checkpoint = torch.load(self.config.model_path, map_location=self.device)
+                checkpoint = torch.load(
+                    self.config.model_path,
+                    map_location=self.device,
+                )
                 self.model.load_state_dict(checkpoint['model_state_dict'])
                 self.logger.info(f"Loaded model from {self.config.model_path}")
             else:
-                self.logger.warning(f"Model file not found: {self.config.model_path}")
+                self.logger.warning(
+                    "Model file not found: %s",
+                    self.config.model_path,
+                )
                 # Keep model with random weights for demonstration
 
             # Move to device and set eval mode
@@ -301,7 +323,7 @@ class MLPredictor:
     def _features_to_tensor(self, features: Dict[str, float]):
         """Convert features dictionary to model input tensor."""
         if not torch:
-            raise RuntimeError("PyTorch is required for feature tensor conversion")
+            raise RuntimeError("PyTorch required for tensor conversion")
 
         channels, height, width = self.config.input_shape
 
@@ -318,9 +340,8 @@ class MLPredictor:
             dtype=np.float32,
         )
 
-        # Build a mock spectrogram surface matching the expected CNN input shape.
-        # This keeps the pipeline operational even before real spectrogram features
-        # are integrated, avoiding shape mismatches in convolution layers.
+        # Build a mock spectrogram matching the expected CNN input shape.
+        # This preserves the pipeline until real spectrogram features exist.
         spectrogram = np.zeros((channels, height, width), dtype=np.float32)
 
         flat_features = feature_vector.flatten()
@@ -331,7 +352,11 @@ class MLPredictor:
 
         return tensor
 
-    async def _check_model_drift(self, features: Dict[str, float], prediction: Dict[str, Any]):
+    async def _check_model_drift(
+        self,
+        features: Dict[str, float],
+        prediction: Dict[str, Any],
+    ):
         """Check for model drift based on prediction patterns."""
         try:
             # Simple drift detection based on confidence distribution
@@ -357,7 +382,10 @@ class MLPredictor:
 
                 # If drift score is high, log warning
                 if self.drift_score > 0.1:  # 10% confidence drop
-                    self.logger.warning(f"Potential model drift detected: {self.drift_score:.3f}")
+                    self.logger.warning(
+                        "Potential model drift detected: %.3f",
+                        self.drift_score,
+                    )
 
         except Exception as e:
             self.logger.error(f"Error checking model drift: {e}")
@@ -375,7 +403,11 @@ class MLPredictor:
             'using_gpu': self.device.type == 'cuda'
         }
 
-    def retrain_model(self, new_training_data: np.ndarray, labels: np.ndarray) -> bool:
+    def retrain_model(
+        self,
+        new_training_data: np.ndarray,
+        labels: np.ndarray,
+    ) -> bool:
         """
         Retrain the model with new data.
 
@@ -391,7 +423,10 @@ class MLPredictor:
 
             # This would implement the full retraining pipeline
             # For now, just log the operation
-            self.logger.info(f"Would retrain with {len(new_training_data)} samples")
+            self.logger.info(
+                "Would retrain with %s samples",
+                len(new_training_data),
+            )
 
             return True
 
