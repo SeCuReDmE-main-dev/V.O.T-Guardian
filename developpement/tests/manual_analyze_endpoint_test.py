@@ -33,14 +33,14 @@ audio_bytes = audio_buffer.read()
 def main() -> None:
     import sys
 
-    from flask.testing import FlaskClient
-
-    from api.main import app, logger as api_logger  # type: ignore
-
     project_root = Path(__file__).resolve().parent.parent
     src_path = project_root / "src"
     if str(src_path) not in sys.path:
         sys.path.insert(0, str(src_path))
+
+    from flask.testing import FlaskClient
+
+    from api.main import app, logger as api_logger  # type: ignore
 
     # Configure logging to ensure visibility during the manual run.
     logging.basicConfig(level=logging.DEBUG)
