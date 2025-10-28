@@ -252,48 +252,83 @@ class PostgreSQLClient:
             self.logger.error(f"Error logging audit event: {e}")
             raise
 
-    async def get_compliance_report(self, start_date: str, end_date: str) -> Dict[str, Any]:
+    async def get_compliance_report(
+        self,
+        start_date: str,
+        end_date: str,
+    ) -> Dict[str, Any]:
         """Generate compliance report for audit purposes."""
         try:
             async with self.pool.acquire() as conn:
                 # Get analysis statistics
-                analysis_stats = await conn.fetchrow("""
+                analysis_stats = await conn.fetchrow(
+                    """
                     SELECT
-                        COUNT(*) as total_analyses,
-                        COUNT(CASE WHEN prediction = 'AI' THEN 1 END) as ai_predictions,
-                        COUNT(CASE WHEN prediction = 'HUMAN' THEN 1 END) as human_predictions,
-                        AVG(confidence) as avg_confidence,
-                        AVG(processing_time_ms) as avg_processing_time
+                        COUNT(*) AS total_analyses,
+                        COUNT(
+                            CASE WHEN prediction = 'AI' THEN 1 END
+                        ) AS ai_predictions,
+                        COUNT(
+                            CASE WHEN prediction = 'HUMAN' THEN 1 END
+                        ) AS human_predictions,
+                        AVG(confidence) AS avg_confidence,
+                        AVG(processing_time_ms) AS avg_processing_time
                     FROM analysis_results
                     WHERE created_at BETWEEN $1 AND $2
-                """, start_date, end_date)
+                    """,
+                    start_date,
+                    end_date,
+                )
 
                 # Get audit statistics
-                audit_stats = await conn.fetchrow("""
+                audit_stats = await conn.fetchrow(
+                    """
                     SELECT
-                        COUNT(*) as total_events,
-                        COUNT(CASE WHEN compliance_status = 'COMPLIANT' THEN 1 END) as compliant_events,
-                        COUNT(CASE WHEN compliance_status = 'DEGRADED' THEN 1 END) as degraded_events
+                        COUNT(*) AS total_events,
+                        COUNT(
+                            CASE WHEN compliance_status = 'COMPLIANT'
+                            THEN 1 END
+                        ) AS compliant_events,
+                        COUNT(
+                            CASE WHEN compliance_status = 'DEGRADED'
+                            THEN 1 END
+                        ) AS degraded_events
                     FROM audit_trail
                     WHERE created_at BETWEEN $1 AND $2
-                """, start_date, end_date)
+                    """,
+                    start_date,
+                    end_date,
+                )
+
+                avg_confidence = analysis_stats['avg_confidence'] or 0
+                avg_processing = analysis_stats['avg_processing_time'] or 0
+
+                total_events = audit_stats['total_events'] or 0
+                compliant_events = audit_stats['compliant_events'] or 0
+                compliance_rate = 100
+                if total_events > 0:
+                    compliance_rate = (compliant_events / total_events) * 100
+
+                analysis_summary = {
+                    'total': analysis_stats['total_analyses'],
+                    'ai_predictions': analysis_stats['ai_predictions'],
+                    'human_predictions': analysis_stats['human_predictions'],
+                    'average_confidence': float(avg_confidence),
+                    'average_processing_time_ms': float(avg_processing),
+                }
+
+                audit_summary = {
+                    'total_events': total_events,
+                    'compliant_events': compliant_events,
+                    'degraded_events': audit_stats['degraded_events'] or 0,
+                    'compliance_rate': compliance_rate,
+                }
 
                 return {
                     'period': {'start': start_date, 'end': end_date},
-                    'analysis': {
-                        'total': analysis_stats['total_analyses'],
-                        'ai_predictions': analysis_stats['ai_predictions'],
-                        'human_predictions': analysis_stats['human_predictions'],
-                        'average_confidence': float(analysis_stats['avg_confidence']) if analysis_stats['avg_confidence'] else 0,
-                        'average_processing_time_ms': float(analysis_stats['avg_processing_time']) if analysis_stats['avg_processing_time'] else 0
-                    },
-                    'audit': {
-                        'total_events': audit_stats['total_events'],
-                        'compliant_events': audit_stats['compliant_events'],
-                        'degraded_events': audit_stats['degraded_events'],
-                        'compliance_rate': (audit_stats['compliant_events'] / audit_stats['total_events'] * 100) if audit_stats['total_events'] > 0 else 100
-                    },
-                    'generated_at': datetime.utcnow().isoformat()
+                    'analysis': analysis_summary,
+                    'audit': audit_summary,
+                    'generated_at': datetime.utcnow().isoformat(),
                 }
 
         except Exception as e:
@@ -315,9 +350,11 @@ class PostgreSQLClient:
                     WHERE created_at > NOW() - INTERVAL '24 hours'
                 """)
 
+                avg_latency = metrics['avg_latency_24h'] or 0
+
                 return {
                     'total_analyses_24h': metrics['total_analyses_24h'],
-                    'average_latency_24h_ms': float(metrics['avg_latency_24h']) if metrics['avg_latency_24h'] else 0,
+                    'average_latency_24h_ms': float(avg_latency),
                     'uptime_hours': 24,  # Would calculate actual uptime
                     'database_status': 'healthy'
                 }
