@@ -300,17 +300,34 @@ class MLPredictor:
 
     def _features_to_tensor(self, features: Dict[str, float]):
         """Convert features dictionary to model input tensor."""
-        # Extract the 3 main features for V.O.T. Guardian
+        if not torch:
+            raise RuntimeError("PyTorch is required for feature tensor conversion")
+
+        channels, height, width = self.config.input_shape
+
+        # Extract representative features and normalize simple range
         vot = features.get('vot', 0.4)
         jitter = features.get('jitter', 0.05)
         shimmer = features.get('shimmer', 0.1)
+        snr = features.get('snr_db', 20.0)
+        thd = features.get('thd_percent', 1.0)
+        mfcc_mean = features.get('mfcc_mean', 0.0)
 
-        # Create feature vector
-        feature_vector = np.array([vot, jitter, shimmer], dtype=np.float32)
+        feature_vector = np.array(
+            [vot, jitter, shimmer, snr, thd, mfcc_mean],
+            dtype=np.float32,
+        )
 
-        # Reshape for CNN input (batch_size=1, channels=1, height=1, width=3)
-        # In practice, this would be a spectrogram, but for demo we use simple features
-        tensor = torch.from_numpy(feature_vector).unsqueeze(0).unsqueeze(0).unsqueeze(0)
+        # Build a mock spectrogram surface matching the expected CNN input shape.
+        # This keeps the pipeline operational even before real spectrogram features
+        # are integrated, avoiding shape mismatches in convolution layers.
+        spectrogram = np.zeros((channels, height, width), dtype=np.float32)
+
+        flat_features = feature_vector.flatten()
+        max_len = min(flat_features.size, height * width)
+        spectrogram[0].reshape(-1)[:max_len] = flat_features[:max_len]
+
+        tensor = torch.from_numpy(spectrogram).unsqueeze(0)
 
         return tensor
 
