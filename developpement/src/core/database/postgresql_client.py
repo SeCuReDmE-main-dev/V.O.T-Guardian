@@ -13,13 +13,14 @@ Features:
 Author: Jean-Sébastien Beaulieu
 """
 
-import os
 import json
 import logging
-import asyncpg
-from typing import Dict, List, Optional, Any
+import os
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Any, Dict, Optional
+
+import asyncpg
 
 
 @dataclass
@@ -44,10 +45,14 @@ class PostgreSQLClient:
 
     def _load_config(self) -> DatabaseConfig:
         """Load configuration from environment."""
+        default_url = (
+            'postgresql://vot_user:vot_password@localhost:5432/'
+            'vot_guardian'
+        )
         return DatabaseConfig(
-            url=os.getenv('POSTGRESQL_URL', 'postgresql://vot_user:vot_password@localhost:5432/vot_guardian'),
+            url=os.getenv('POSTGRESQL_URL', default_url),
             min_connections=int(os.getenv('DB_MIN_CONNECTIONS', '5')),
-            max_connections=int(os.getenv('DB_MAX_CONNECTIONS', '20'))
+            max_connections=int(os.getenv('DB_MAX_CONNECTIONS', '20')),
         )
 
     async def connect(self):
