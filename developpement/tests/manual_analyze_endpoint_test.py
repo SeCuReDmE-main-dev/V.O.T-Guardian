@@ -1,10 +1,11 @@
 """Manual integration test for the /analyze endpoint."""
 
 import io
-import struct
-import sys
-import wave
 import logging
+import math
+import struct
+import wave
+from pathlib import Path
 sample_rate = 16000
 frequency = 440
 seconds = 1.0
@@ -32,14 +33,14 @@ audio_bytes = audio_buffer.read()
 def main() -> None:
     import sys
 
-    PROJECT_ROOT = Path(__file__).resolve().parent.parent
-    SRC_PATH = PROJECT_ROOT / "src"
-    if str(SRC_PATH) not in sys.path:
-        sys.path.insert(0, str(SRC_PATH))
-
     from flask.testing import FlaskClient
 
     from api.main import app, logger as api_logger  # type: ignore
+
+    project_root = Path(__file__).resolve().parent.parent
+    src_path = project_root / "src"
+    if str(src_path) not in sys.path:
+        sys.path.insert(0, str(src_path))
 
     # Configure logging to ensure visibility during the manual run.
     logging.basicConfig(level=logging.DEBUG)
