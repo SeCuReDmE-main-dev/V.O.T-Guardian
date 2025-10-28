@@ -16,9 +16,11 @@ Monitoring: Datadog integration
 import os
 import asyncio
 import importlib
-# import time  # no longer used in the real endpoint step
 import logging
+import time
+import uuid
 from datetime import datetime
+from typing import Any, Dict
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 try:
@@ -51,10 +53,7 @@ from werkzeug.exceptions import BadRequest
 # Import core modules
 from ..core.security.tenebris import TenebrisProtocol
 from ..core.monitoring.datadog_client import DatadogClient
-from ..core.e2b.sandbox_manager import (
-    E2BSandboxManager,
-    run_python_code_in_sandbox,
-)
+from ..core.e2b.sandbox_manager import E2BSandboxManager
 from ..core.audio.processor import AudioProcessor
 from ..core.ml.predictor import MLPredictor
 from ..core.database.postgresql_client import PostgreSQLClient
@@ -90,6 +89,156 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+def _get_call_id() -> str:
+    """Return a sanitized call identifier or generate one."""
+    provided = request.form.get('call_id') or request.args.get('call_id')
+    if provided:
+        return str(provided)
+    return f"call_{uuid.uuid4().hex}"
+
+
+async def _process_analysis_request(
+    call_id: str,
+    audio_bytes: bytes,
+) -> Dict[str, Any]:
+    """Run the end-to-end analysis pipeline asynchronously."""
+    pipeline_start = time.perf_counter()
+
+    if not audio_processor.validate_audio_format(audio_bytes):
+        raise BadRequest("Unsupported audio format or duration")
+
+    async with tenebris.execute_protocol(call_id) as sandbox_id:
+        features = audio_processor.process_audio_data(audio_bytes)
+        prediction = await ml_predictor.predict(features)
+
+        total_processing_time_ms = (
+            time.perf_counter() - pipeline_start
+        ) * 1000
+        response_payload = _build_response_payload(
+            call_id,
+            prediction,
+            features,
+            sandbox_id,
+            total_processing_time_ms,
+        )
+
+        await _persist_analysis_result(response_payload, features, sandbox_id)
+        _record_metrics(response_payload, features, sandbox_id)
+
+        return response_payload
+
+
+async def _persist_analysis_result(
+    response_payload: Dict[str, Any],
+    features: Dict[str, float],
+    sandbox_id: str,
+) -> None:
+    """Store analysis output and audit trail; failures are logged only."""
+    try:
+        await _ensure_db_connection()
+        await db_client.store_analysis_result({
+            'call_id': response_payload['call_id'],
+            'prediction': response_payload['prediction'],
+            'confidence': response_payload['confidence'],
+            'features': features,
+            'processing_time_ms': response_payload['processing_time_ms'],
+        })
+
+        await db_client.log_audit_event(
+            event_type='ANALYSIS_COMPLETED',
+            call_id=response_payload['call_id'],
+            session_id=sandbox_id,
+            metadata={
+                'prediction': response_payload['prediction'],
+                'confidence': response_payload['confidence'],
+                'model_version': response_payload.get('model_version'),
+                'features': features,
+            },
+        )
+    # pragma: no cover - persistence issues shouldn't block response
+    except Exception as persist_error:
+        logger.warning(
+            "Failed to persist analysis or audit trail for %s: %s",
+            response_payload['call_id'],
+            persist_error,
+        )
+
+
+async def _ensure_db_connection() -> None:
+    """Ensure the PostgreSQL connection pool is available."""
+    if db_client.pool is None:
+        await db_client.connect()
+
+
+def _record_metrics(
+    response_payload: Dict[str, Any],
+    features: Dict[str, float],
+    sandbox_id: str,
+) -> None:
+    """Emit monitoring metrics; best-effort only."""
+    try:
+        datadog.record_analysis_metrics(
+            call_id=response_payload['call_id'],
+            prediction=response_payload['prediction'],
+            confidence=response_payload['confidence'],
+            latency_ms=response_payload['processing_time_ms'],
+        )
+
+        snr_db = features.get('snr_db', 0.0)
+        thd_percent = features.get('thd_percent', 0.0)
+        datadog.record_audio_quality_metrics(
+            call_id=response_payload['call_id'],
+            snr_db=snr_db,
+            thd_percent=thd_percent,
+            clipping_ratio=features.get('zero_crossing_rate', 0.0),
+        )
+
+        datadog.record_tenebris_metrics(
+            call_id=response_payload['call_id'],
+            destruction_time_ms=response_payload.get(
+                'tenebris_destruction_time_ms',
+                0.0,
+            ),
+            compliance_status='COMPLIANT',
+        )
+    # pragma: no cover - metrics failures are non-blocking
+    except Exception as metrics_error:
+        logger.debug(
+            "Metrics emission failed for %s: %s",
+            sandbox_id,
+            metrics_error,
+        )
+
+
+def _build_response_payload(
+    call_id: str,
+    prediction: Dict[str, Any],
+    features: Dict[str, float],
+    sandbox_id: str,
+    total_processing_time_ms: float,
+) -> Dict[str, Any]:
+    """Shape the JSON returned to the frontend."""
+    return {
+        'call_id': call_id,
+        'prediction': prediction.get('prediction', 'UNKNOWN'),
+        'confidence': prediction.get('confidence', 0.0),
+        'processing_time_ms': round(total_processing_time_ms, 2),
+        'model_processing_time_ms': round(
+            prediction.get('processing_time_ms', 0.0),
+            2,
+        ),
+        'status': 'success',
+        'features': features,
+        'model_version': prediction.get('model_version'),
+        'probabilities': prediction.get('probabilities'),
+        'tenebris_session': sandbox_id,
+        'tenebris_destruction_time_ms': prediction.get(
+            'tenebris_destruction_time_ms',
+            0.0,
+        ),
+    }
+
+
 @app.route('/', methods=['GET'])
 def root():
     """Root endpoint with API information."""
@@ -120,189 +269,41 @@ def health_check():
 
 @app.route('/analyze', methods=['POST'])
 def analyze_audio():
-    """
-    Real analysis endpoint (Step 1: E2B pipeline validation)
-
-    Accepts an audio file, starts an E2B sandbox, sends the file into the
-    sandbox, executes a tiny Python snippet to confirm receipt, and returns a
-    simple JSON.
-    """
+    """Main analysis endpoint connecting the full processing pipeline."""
     try:
         if 'audio' not in request.files:
             raise BadRequest("No audio file provided")
 
         audio_file = request.files['audio']
         audio_bytes = audio_file.read()
+        call_id = _get_call_id()
 
-        async def _sandbox_mindsdb_probe(data: bytes) -> dict:
-            """
-            Create a fresh sandbox with internet,
-            pip install deps, run probe script, return outputs.
-            """
-            if E2BSandbox is None and GenericE2BSandbox is None:
-                return {
-                    "stdout": "E2B SDK not available",
-                    "install_stdout": "",
-                    "error": "E2B SDK missing",
-                }
+        if not audio_bytes:
+            raise BadRequest("Empty audio payload")
 
-            # Allow internet and extend timeout to handle pip installs
-            sandbox = None
-            try:
-                use_generic = (
-                    bool(getattr(e2b_manager.config, 'template_id', None))
-                    and GenericE2BSandbox is not None
-                )
+        if len(audio_bytes) > settings.max_audio_file_size:
+            raise BadRequest("Audio file exceeds maximum size limit")
 
-                if use_generic:
-                    tmpl = (
-                        e2b_manager.config.template_id
-                        or 'vot-guardian-cpu-mid'
-                    )
-                    create_kwargs = {
-                        'template': tmpl,
-                        'allow_internet_access': True,
-                    }
-                    if e2b_manager.config.api_key:
-                        create_kwargs['api_key'] = (
-                            e2b_manager.config.api_key
-                        )
-                    sandbox = GenericE2BSandbox.create(**create_kwargs)
-                else:
-                    if E2BSandbox is None:
-                        raise RuntimeError(
-                            "Code Interpreter SDK not available"
-                        )
-                    create_kwargs = {
-                        'allow_internet_access': True,
-                        'timeout': max(
-                            300,
-                            e2b_manager.config.sandbox_timeout,
-                        ),
-                    }
-                    if e2b_manager.config.api_key:
-                        create_kwargs['api_key'] = (
-                            e2b_manager.config.api_key
-                        )
-                    sandbox = E2BSandbox.create(**create_kwargs)
-
-                loop = asyncio.get_running_loop()
-                await loop.run_in_executor(
-                    None,
-                    lambda: sandbox.files.write('input_audio.bin', data),
-                )
-
-                def format_run_output(run_result: dict) -> str:
-                    if not run_result:
-                        return ''
-                    if run_result.get('error'):
-                        return f"error: {run_result['error']}"
-                    text = (run_result.get('stdout') or '').strip()
-                    if not text and run_result.get('stderr'):
-                        text = str(run_result['stderr']).strip()
-                    exit_code = run_result.get('exit_code')
-                    if exit_code not in (0, None):
-                        suffix = f"exit_code={exit_code}"
-                        text = f"{text}\n{suffix}" if text else suffix
-                    return text
-
-                if use_generic:
-                    install_result = {
-                        'stdout': 'skipped (using E2B template)',
-                        'stderr': '',
-                        'exit_code': None,
-                        'error': None,
-                    }
-                else:
-                    install_code = (
-                        "import subprocess, sys\n"
-                        "pkgs = ['mindsdb', 'librosa', 'torch']\n"
-                        "print('Installing packages:', pkgs)\n"
-                        "cmd = [sys.executable, '-m', 'pip', 'install']"
-                        " + pkgs\n"
-                        "proc = subprocess.run(\n"
-                        "    cmd, capture_output=True, text=True\n"
-                        ")\n"
-                        "print('pip returncode:', proc.returncode)\n"
-                        "print('--- pip stdout ---')\n"
-                        "print(proc.stdout)\n"
-                        "print('--- pip stderr ---')\n"
-                        "print(proc.stderr)\n"
-                    )
-                    install_result = await loop.run_in_executor(
-                        None,
-                        lambda: run_python_code_in_sandbox(
-                            sandbox,
-                            install_code,
-                        ),
-                    )
-
-                install_out = format_run_output(install_result)
-
-                probe_code = (
-                    "print('Importing libraries...')\n"
-                    "import importlib\n"
-                    "modules = ['librosa', 'torch', 'mindsdb']\n"
-                    "for m in modules:\n"
-                    "    try:\n"
-                    "        importlib.import_module(m)\n"
-                    "        print(f'Imported {m}')\n"
-                    "    except Exception as exc:\n"
-                    "        print(f'Failed to import {m}: {exc}')\n"
-                    "print('Reading input file...')\n"
-                    "with open('input_audio.bin','rb') as f:\n"
-                    "    audio_bytes = f.read()\n"
-                    "print(f'Audio size: {len(audio_bytes)} bytes')\n"
-                    "print('Connexion à MindsDB...')\n"
-                    "print('OK: Simulation de connexion effectuée.')\n"
-                )
-                probe_result = await loop.run_in_executor(
-                    None,
-                    lambda: run_python_code_in_sandbox(sandbox, probe_code),
-                )
-                probe_out = format_run_output(probe_result)
-
-                error_msg = (
-                    install_result.get('error')
-                    or probe_result.get('error')
-                )
-
-                return {
-                    "install_stdout": install_out,
-                    "stdout": probe_out,
-                    "error": error_msg,
-                }
-            except Exception as se:  # pragma: no cover
-                logger.error(f"Sandbox probe error: {se}")
-                return {"install_stdout": "", "stdout": "", "error": str(se)}
-            finally:
-                try:
-                    if sandbox is not None:
-                        # Terminate the sandbox cleanly
-                        sandbox.kill()
-                except Exception:
-                    pass
-
-        # Run the async sandbox interaction
-        outputs = asyncio.run(_sandbox_mindsdb_probe(audio_bytes))
-
-        return jsonify({
-            "status": "real_endpoint_hit",
-            "sandbox_install_stdout": outputs.get("install_stdout", ""),
-            "sandbox_stdout": outputs.get("stdout", ""),
-            "sandbox_error": outputs.get("error"),
-        }), 200
+        result = asyncio.run(_process_analysis_request(call_id, audio_bytes))
+        return jsonify(result), 200
 
     except BadRequest as br:
         return jsonify({
             'error': 'Bad request',
             'message': str(br)
         }), 400
-    except Exception as e:
-        logger.error(f"/analyze error: {e}")
+    except RuntimeError as runtime_error:
+        # asyncio.run cannot be nested; surface as server error
+        logger.error(f"Runtime error in /analyze: {runtime_error}")
         return jsonify({
             'error': 'Internal server error',
-            'message': str(e)
+            'message': 'Analysis service unavailable'
+        }), 500
+    except Exception as exc:  # pragma: no cover
+        logger.error(f"/analyze error: {exc}", exc_info=True)
+        return jsonify({
+            'error': 'Internal server error',
+            'message': 'Unexpected failure during analysis'
         }), 500
 
 
