@@ -1,26 +1,10 @@
 """Manual integration test for the /analyze endpoint."""
 
 import io
-import math
 import struct
 import sys
 import wave
 import logging
-from pathlib import Path
-
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-SRC_PATH = PROJECT_ROOT / "src"
-if str(SRC_PATH) not in sys.path:
-    sys.path.insert(0, str(SRC_PATH))
-
-from flask.testing import FlaskClient
-
-from api.main import app, logger as api_logger  # type: ignore
-
-# Configure logging to ensure visibility during the manual run.
-logging.basicConfig(level=logging.DEBUG)
-api_logger.setLevel(logging.DEBUG)
-
 sample_rate = 16000
 frequency = 440
 seconds = 1.0
@@ -44,12 +28,33 @@ with wave.open(audio_buffer, "wb") as wf:
 audio_buffer.seek(0)
 audio_bytes = audio_buffer.read()
 
-client: FlaskClient = app.test_client()
-response = client.post(
-    "/analyze",
-    data={"audio": (io.BytesIO(audio_bytes), "test.wav")},
-    content_type="multipart/form-data",
-)
 
-print("Status:", response.status_code)
-print("JSON:", response.get_json())
+def main() -> None:
+    import sys
+
+    PROJECT_ROOT = Path(__file__).resolve().parent.parent
+    SRC_PATH = PROJECT_ROOT / "src"
+    if str(SRC_PATH) not in sys.path:
+        sys.path.insert(0, str(SRC_PATH))
+
+    from flask.testing import FlaskClient
+
+    from api.main import app, logger as api_logger  # type: ignore
+
+    # Configure logging to ensure visibility during the manual run.
+    logging.basicConfig(level=logging.DEBUG)
+    api_logger.setLevel(logging.DEBUG)
+
+    client: FlaskClient = app.test_client()
+    response = client.post(
+        "/analyze",
+        data={"audio": (io.BytesIO(audio_bytes), "test.wav")},
+        content_type="multipart/form-data",
+    )
+
+    print("Status:", response.status_code)
+    print("JSON:", response.get_json())
+
+
+if __name__ == "__main__":
+    main()
