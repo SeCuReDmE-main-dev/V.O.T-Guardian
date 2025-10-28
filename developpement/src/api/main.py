@@ -14,6 +14,7 @@ Monitoring: Datadog integration
 """
 
 import os
+import json
 import asyncio
 import importlib
 import logging
@@ -136,24 +137,27 @@ async def _persist_analysis_result(
     """Store analysis output and audit trail; failures are logged only."""
     try:
         await _ensure_db_connection()
+        features_payload = json.dumps(features)
         await db_client.store_analysis_result({
             'call_id': response_payload['call_id'],
             'prediction': response_payload['prediction'],
             'confidence': response_payload['confidence'],
-            'features': features,
+            'features': features_payload,
             'processing_time_ms': response_payload['processing_time_ms'],
+        })
+
+        metadata_payload = json.dumps({
+            'prediction': response_payload['prediction'],
+            'confidence': response_payload['confidence'],
+            'model_version': response_payload.get('model_version'),
+            'features': features,
         })
 
         await db_client.log_audit_event(
             event_type='ANALYSIS_COMPLETED',
             call_id=response_payload['call_id'],
             session_id=sandbox_id,
-            metadata={
-                'prediction': response_payload['prediction'],
-                'confidence': response_payload['confidence'],
-                'model_version': response_payload.get('model_version'),
-                'features': features,
-            },
+            metadata=metadata_payload,
         )
     # pragma: no cover - persistence issues shouldn't block response
     except Exception as persist_error:
