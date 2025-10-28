@@ -152,16 +152,28 @@ class PostgreSQLClient:
         """Store analysis result in database."""
         try:
             async with self.pool.acquire() as conn:
-                await conn.execute("""
-                    INSERT INTO analysis_results (call_id, prediction, confidence, features, processing_time_ms)
+                await conn.execute(
+                    """
+                    INSERT INTO analysis_results (
+                        call_id,
+                        prediction,
+                        confidence,
+                        features,
+                        processing_time_ms
+                    )
                     VALUES ($1, $2, $3, $4, $5)
                     ON CONFLICT (call_id) DO UPDATE SET
                         prediction = EXCLUDED.prediction,
                         confidence = EXCLUDED.confidence,
                         features = EXCLUDED.features,
                         processing_time_ms = EXCLUDED.processing_time_ms
-                """, result['call_id'], result['prediction'], result['confidence'],
-                     result.get('features'), result.get('processing_time_ms'))
+                    """,
+                    result['call_id'],
+                    result['prediction'],
+                    result['confidence'],
+                    result.get('features'),
+                    result.get('processing_time_ms'),
+                )
 
         except Exception as e:
             self.logger.error(f"Error storing analysis result: {e}")
