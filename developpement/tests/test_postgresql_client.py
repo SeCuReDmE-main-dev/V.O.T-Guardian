@@ -46,7 +46,7 @@ def test_get_analysis_result_deserializes_features():
         return fake_row
 
     class DummyPool:
-        async def acquire(self):
+        def acquire(self):
             return self
 
         async def __aenter__(self):
