@@ -1,3 +1,3 @@
 # Test TODOs
 
-- [ ] Add unit tests for `AudioProcessor.process_audio_data` in `src/core/audio/processor.py` to exercise the full feature extraction pipeline. Mock `librosa`/`soundfile` to deliver deterministic audio arrays and assert both normal feature outputs and fallback default values when conversion fails.
+- [ ] Add unit tests for `MLPredictor.predict` in `src/core/ml/predictor.py`, mocking Torch tensors to verify probability normalization, confidence threshold enforcement, and fallback behavior when the model reports low confidence.
