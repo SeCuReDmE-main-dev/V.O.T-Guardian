@@ -3,8 +3,8 @@
 - Commands executed:
   - `python -m pytest --maxfail=3 --disable-warnings`
   - `python -m pytest --cov=src --cov-report=term-missing`
-- Overall coverage: **48%** (566 lines missing out of 1082)
-- New targeted tests: `tests/test_audio_processor.py::test_process_audio_data_nominal` and `tests/test_audio_processor.py::test_process_audio_data_fallback`
+- Overall coverage: **52%** (524 lines missing out of 1082)
+- New targeted tests: `tests/test_ml_predictor.py::test_predict_high_confidence_ai`, `tests/test_ml_predictor.py::test_predict_fallback_when_model_missing`, and `tests/test_pipeline_e2e.py::test_pipeline_e2e_persists_features`
 
 ## Newly Covered Paths
 
@@ -16,12 +16,12 @@
 
 - `src/core/database/postgresql_client.py` (43%): persistence lifecycle, retry logic, and error handling still untested.
 - `src/core/e2b/sandbox_manager.py` (25%): sandbox orchestration flows, timeout paths, and cleanup remain uncovered.
-- `src/core/ml/predictor.py` (36%): model loading, confidence gating, and inference fallback need dedicated unit tests.
+- `src/core/ml/predictor.py` (60%): model loading edge cases, GPU/mixed precision paths, and drift detection remain untested.
 - `src/core/monitoring/datadog_client.py` (42%): metric batching and error telemetry code paths lack coverage.
 - `src/core/security/tenebris.py` (43%): session validation and audit hooks are not exercised.
 
 ## Immediate Plan
 
-1. Design focused unit tests around `MLPredictor.predict` to validate confidence threshold handling and probability normalization.
-2. Expand ML tests to include failure states (missing model weights, torch unavailable) to lock in fallback behaviors.
-3. Iterate on database and sandbox layers once ML predictor coverage stabilises, prioritising deterministic mocks for external services.
+1. Target `DatadogClient` metrics emission with stub transport to exercise success/failure branches.
+2. Add sandbox lifecycle tests in `E2BSandboxManager` to cover session creation and cleanup (mocking E2B SDK).
+3. Follow up with persistence integration tests around `PostgreSQLClient` once database fixtures are available.
