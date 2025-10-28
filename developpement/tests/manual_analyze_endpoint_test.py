@@ -8,12 +8,12 @@ import wave
 import logging
 from pathlib import Path
 
-from flask.testing import FlaskClient
-
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 SRC_PATH = PROJECT_ROOT / "src"
 if str(SRC_PATH) not in sys.path:
     sys.path.insert(0, str(SRC_PATH))
+
+from flask.testing import FlaskClient
 
 from api.main import app, logger as api_logger  # type: ignore
 
@@ -29,7 +29,9 @@ amplitude = 16000
 total_frames = int(sample_rate * seconds)
 frames = bytearray()
 for i in range(total_frames):
-    sample = int(amplitude * math.sin(2 * math.pi * frequency * i / sample_rate))
+    sample = int(
+        amplitude * math.sin(2 * math.pi * frequency * i / sample_rate)
+    )
     frames.extend(struct.pack("<h", sample))
 
 audio_buffer = io.BytesIO()
