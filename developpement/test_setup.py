@@ -56,7 +56,9 @@ REQUIRED_FILES = [
 ]
 
 
-def _check_module_imports(verbose: bool = True) -> Tuple[bool, List[Tuple[str, str]]]:
+def _check_module_imports(
+    verbose: bool = True,
+) -> Tuple[bool, List[Tuple[str, str]]]:
     if verbose:
         print("[TEST] Testing core module imports...")
 
@@ -65,7 +67,10 @@ def _check_module_imports(verbose: bool = True) -> Tuple[bool, List[Tuple[str, s
     for module_name in MODULES_TO_TEST:
         try:
             if module_name == "src":
-                spec = importlib.util.spec_from_file_location("src", "src/__init__.py")
+                spec = importlib.util.spec_from_file_location(
+                    "src",
+                    "src/__init__.py",
+                )
                 if not spec or not spec.loader:
                     raise ImportError("Unable to load src package spec")
                 module = importlib.util.module_from_spec(spec)
@@ -83,7 +88,9 @@ def _check_module_imports(verbose: bool = True) -> Tuple[bool, List[Tuple[str, s
     return len(failed_imports) == 0, failed_imports
 
 
-def _check_dependency_status(verbose: bool = True) -> Tuple[List[str], List[str]]:
+def _check_dependency_status(
+    verbose: bool = True,
+) -> Tuple[List[str], List[str]]:
     if verbose:
         print("\n🔧 Testing core dependencies...")
 
@@ -119,7 +126,10 @@ def _validate_configuration(verbose: bool = True) -> Tuple[bool, str | None]:
             print(f"  ✅ API port: {settings.api_port}")
             print(f"  ✅ Max audio size: {settings.max_audio_file_size}")
             print(f"  ✅ Tenebris max time: {settings.tenebris_max_time_ms}ms")
-            print(f"  ✅ ML confidence threshold: {settings.ml_confidence_threshold}")
+            print(
+                "  ✅ ML confidence threshold: "
+                f"{settings.ml_confidence_threshold}"
+            )
 
             if settings.is_production_ready():
                 print("  ⚠️ Configuration is production-ready")
