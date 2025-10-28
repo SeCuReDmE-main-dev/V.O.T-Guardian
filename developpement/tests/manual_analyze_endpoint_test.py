@@ -6,6 +6,7 @@ import math
 import struct
 import wave
 from pathlib import Path
+
 sample_rate = 16000
 frequency = 440
 seconds = 1.0
