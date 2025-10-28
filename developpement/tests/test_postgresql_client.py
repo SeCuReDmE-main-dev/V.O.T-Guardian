@@ -1,10 +1,9 @@
 """Unit tests for PostgreSQLClient helpers."""
 
+import asyncio
 import json
-from typing import Dict, Any
+from typing import Any
 from unittest import mock
-
-import pytest
 
 from src.core.database.postgresql_client import PostgreSQLClient
 
@@ -19,15 +18,7 @@ class DummyRecord(dict):
             raise AttributeError(item) from exc
 
 
-async def _get_result(
-    client: PostgreSQLClient,
-    call_id: str,
-) -> Dict[str, Any]:
-    return await client.get_analysis_result(call_id)
-
-
-@pytest.mark.asyncio
-async def test_get_analysis_result_deserializes_features(monkeypatch):
+def test_get_analysis_result_deserializes_features():
     client = PostgreSQLClient()
 
     fake_row = DummyRecord(
@@ -69,7 +60,7 @@ async def test_get_analysis_result_deserializes_features(monkeypatch):
 
     client.pool = DummyPool()
 
-    result = await _get_result(client, "call_test_123")
+    result = asyncio.run(client.get_analysis_result("call_test_123"))
 
     assert isinstance(result, dict)
     assert result["call_id"] == "call_test_123"
