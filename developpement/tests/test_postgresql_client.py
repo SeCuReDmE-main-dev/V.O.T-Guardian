@@ -345,8 +345,13 @@ def test_get_compliance_report_handles_mixed_activity():
     assert report["analysis"]["total"] == 8
     assert report["analysis"]["ai_predictions"] == 5
     assert report["analysis"]["average_confidence"] == pytest.approx(0.8125)
-    assert report["analysis"]["average_processing_time_ms"] == pytest.approx(143.2)
-    assert report["audit"]["compliance_rate"] == pytest.approx(66.666, rel=1e-3)
+    assert report["analysis"]["average_processing_time_ms"] == pytest.approx(
+        143.2
+    )
+    assert report["audit"]["compliance_rate"] == pytest.approx(
+        66.666,
+        rel=1e-3,
+    )
     assert report["audit"]["degraded_events"] == 2
 
 
