@@ -17,6 +17,8 @@ import asyncio
 import json
 import logging
 import os
+import time
+import tracemalloc
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Dict, Optional
@@ -91,6 +93,8 @@ class PostgreSQLClient:
 
                 self.logger.info(
                     "Connected to PostgreSQL database (attempt %s/%s)",
+                import time
+                import tracemalloc
                     attempt,
                     attempts,
                 )
@@ -100,53 +104,59 @@ class PostgreSQLClient:
                 last_error = exc
                 if attempt < attempts:
                     self.logger.warning(
-                        "Database connection attempt %s/%s failed: %s",
-                        attempt,
-                        attempts,
-                        exc,
-                    )
-                    await asyncio.sleep(backoff * attempt)
-                else:
-                    self.logger.error(
-                        "Failed to connect to database after %s attempts: %s",
-                        attempts,
-                        exc,
-                    )
-                if self.pool:
-                    try:
-                        await self.pool.close()
-                    except Exception:
-                        pass
-                    self.pool = None
+                            pool = None
+                            try:
+                                pool = await asyncpg.create_pool(
+                                    self.config.url,
+                                    min_size=self.config.min_connections,
+                                    max_size=self.config.max_connections,
+                                    command_timeout=self.config.command_timeout,
+                                    server_settings=self.config.server_settings or {}
+                                )
 
-        if last_error:
-            raise last_error
-        raise RuntimeError("Database connection failed without error context")
+                                self.pool = pool
 
-    async def disconnect(self):
-        """Close database connection pool."""
-        if self.pool:
-            await self.pool.close()
-            self.logger.info("Disconnected from PostgreSQL database")
+                                try:
+                                    await self._initialize_tables()
+                                except Exception as init_exc:
+                                    self.logger.warning(
+                                        "Database initialization failed, rolling back pending migrations: %s",
+                                        init_exc,
+                                    )
+                                    await self._close_pool_with_metrics(pool, "init-failure")
+                                    self.pool = None
+                                    raise init_exc
 
-    async def _initialize_tables(self):
-        """Create database tables if they don't exist."""
-        async with self.pool.acquire() as conn:
-            # Analysis results table
-            await conn.execute(
-                """
-                CREATE TABLE IF NOT EXISTS analysis_results (
-                    id SERIAL PRIMARY KEY,
-                    call_id VARCHAR(255) NOT NULL,
-                    prediction VARCHAR(50) NOT NULL,
-                    confidence DECIMAL(5,4) NOT NULL,
-                    features JSONB,
-                    processing_time_ms DECIMAL(8,2),
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    UNIQUE(call_id)
-                );
+                                self.logger.info(
+                                    "Connected to PostgreSQL database (attempt %s/%s)",
+                                    attempt,
+                                    attempts,
+                                )
+                                return
 
-                CREATE INDEX IF NOT EXISTS idx_analysis_results_call_id
+                            except Exception as exc:
+                                last_error = exc
+                                if attempt < attempts:
+                                    self.logger.warning(
+                                        "Database connection attempt %s/%s failed: %s",
+                                        attempt,
+                                        attempts,
+                                        exc,
+                                    )
+                                    await asyncio.sleep(backoff * attempt)
+                                else:
+                                    self.logger.error(
+                                        "Failed to connect to database after %s attempts: %s",
+                                        attempts,
+                                        exc,
+                                    )
+                                if pool is not None and pool is self.pool:
+                                    self.pool = None
+                                if pool is not None:
+                                    try:
+                                        await self._close_pool_with_metrics(pool, "failure")
+                                    except Exception:
+                                        pass
                     ON analysis_results(call_id);
                 CREATE INDEX IF NOT EXISTS idx_analysis_results_created_at
                     ON analysis_results(created_at);
@@ -155,7 +165,8 @@ class PostgreSQLClient:
                 """
             )
 
-            # Audit trail table
+                            await self._close_pool_with_metrics(self.pool, "disconnect")
+                            self.pool = None
             await conn.execute(
                 """
                 CREATE TABLE IF NOT EXISTS audit_trail (
@@ -164,6 +175,63 @@ class PostgreSQLClient:
                     call_id VARCHAR(255),
                     session_id VARCHAR(255),
                     metadata JSONB,
+
+                    def _sample_memory_usage(self) -> Optional[int]:
+                        """Return current traced memory if tracemalloc is active."""
+                        if tracemalloc.is_tracing():
+                            current, _ = tracemalloc.get_traced_memory()
+                            return current
+                        return None
+
+                    def _estimate_pool_connections(self, pool: Any) -> Optional[int]:
+                        """Best-effort estimation of active connections for logging."""
+                        for attr in ("connection_count", "total_connections"):
+                            value = getattr(pool, attr, None)
+                            if isinstance(value, int):
+                                return value
+                        holders = getattr(pool, "_holders", None)
+                        if isinstance(holders, list):
+                            return len(holders)
+                        return None
+
+                    def _log_pool_teardown_metrics(
+                        self,
+                        reason: str,
+                        duration: float,
+                        connections: Optional[int],
+                        memory_before: Optional[int],
+                        memory_after: Optional[int],
+                    ) -> None:
+                        """Emit metrics about pool teardown for observability."""
+                        self.logger.info(
+                            (
+                                "PostgreSQL pool teardown (%s): duration=%.4fs connections=%s "
+                                "memory_before=%s memory_after=%s"
+                            ),
+                            reason,
+                            duration,
+                            connections if connections is not None else "unknown",
+                            memory_before if memory_before is not None else "n/a",
+                            memory_after if memory_after is not None else "n/a",
+                        )
+
+                    async def _close_pool_with_metrics(self, pool: Any, reason: str) -> None:
+                        """Close the given pool while emitting teardown metrics."""
+                        memory_before = self._sample_memory_usage()
+                        connections = self._estimate_pool_connections(pool)
+                        start = time.perf_counter()
+                        try:
+                            await pool.close()
+                        finally:
+                            duration = time.perf_counter() - start
+                            memory_after = self._sample_memory_usage()
+                            self._log_pool_teardown_metrics(
+                                reason,
+                                duration,
+                                connections,
+                                memory_before,
+                                memory_after,
+                            )
                     compliance_status VARCHAR(50),
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 );
