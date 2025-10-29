@@ -72,7 +72,7 @@ class PostgreSQLClient:
 
         for attempt in range(1, attempts + 1):
             try:
-                self.pool = await asyncpg.create_pool(
+                pool = await asyncpg.create_pool(
                     self.config.url,
                     min_size=self.config.min_connections,
                     max_size=self.config.max_connections,
@@ -80,8 +80,14 @@ class PostgreSQLClient:
                     server_settings=self.config.server_settings or {}
                 )
 
-                # Create tables if they don't exist
-                await self._initialize_tables()
+                self.pool = pool
+
+                try:
+                    await self._initialize_tables()
+                except Exception:
+                    await pool.close()
+                    self.pool = None
+                    raise
 
                 self.logger.info(
                     "Connected to PostgreSQL database (attempt %s/%s)",
@@ -106,6 +112,12 @@ class PostgreSQLClient:
                         attempts,
                         exc,
                     )
+                if self.pool:
+                    try:
+                        await self.pool.close()
+                    except Exception:
+                        pass
+                    self.pool = None
 
         if last_error:
             raise last_error
