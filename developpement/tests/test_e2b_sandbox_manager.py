@@ -135,3 +135,96 @@ async def test_sandbox_creation_quota_error(monkeypatch, caplog):
         "Failed to create E2B sandbox: quota exceeded" in record.message
         for record in caplog.records
     )
+
+
+@pytest.mark.anyio
+async def test_health_check_marks_degraded_and_logs(monkeypatch, caplog):
+    caplog.set_level(logging.WARNING, logger="src.core.e2b.sandbox_manager")
+
+    config = SandboxConfig(
+        api_key="fake",
+        min_pool_size=0,
+        max_pool_size=3,
+        sandbox_timeout=5,
+        health_check_interval=1,
+        max_concurrent_per_sandbox=1,
+    )
+
+    manager = E2BSandboxManager(config=config)
+
+    slow_instance = SandboxInstance(
+        id="sb-slow",
+        sandbox=object(),
+        created_at=0.0,
+        last_used=0.0,
+        active_connections=0,
+        status='healthy',
+    )
+    fast_instance = SandboxInstance(
+        id="sb-fast",
+        sandbox=object(),
+        created_at=0.0,
+        last_used=0.0,
+        active_connections=0,
+        status='healthy',
+    )
+
+    manager._pool = {
+        "sb-slow": slow_instance,
+        "sb-fast": fast_instance,
+    }
+
+    time_values = iter([1000.0, 1006.5, 2000.0, 2000.0])
+
+    def fake_time():
+        return next(time_values, 2000.0)
+
+    monkeypatch.setattr(
+        sandbox_module,
+        "time",
+        types.SimpleNamespace(time=fake_time),
+    )
+
+    await manager._perform_health_checks()
+
+    assert manager._pool["sb-slow"].status == 'degraded'
+    assert manager._pool["sb-fast"].status == 'healthy'
+    assert any(
+        "response degraded" in record.message for record in caplog.records
+    )
+
+    stats = manager.get_pool_stats()
+    assert stats["degraded"] == 1
+
+
+@pytest.mark.anyio
+async def test_acquire_sandbox_logs_pool_exhaustion(caplog):
+    caplog.set_level(logging.ERROR, logger="src.core.e2b.sandbox_manager")
+
+    config = SandboxConfig(
+        api_key="fake",
+        min_pool_size=0,
+        max_pool_size=1,
+        sandbox_timeout=5,
+        health_check_interval=1,
+        max_concurrent_per_sandbox=1,
+    )
+
+    manager = E2BSandboxManager(config=config)
+    manager._pool = {
+        "sb-1": SandboxInstance(
+            id="sb-1",
+            sandbox=object(),
+            created_at=0.0,
+            last_used=0.0,
+            active_connections=1,
+            status='healthy',
+        )
+    }
+
+    with pytest.raises(Exception, match="Sandbox pool exhausted"):
+        await manager._acquire_sandbox()
+
+    assert any(
+        "Sandbox pool exhausted" in record.message for record in caplog.records
+    )
