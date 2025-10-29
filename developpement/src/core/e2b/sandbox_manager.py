@@ -53,6 +53,8 @@ class SandboxConfig:
     health_check_interval: int = 30
     max_concurrent_per_sandbox: int = 3
     template_id: Optional[str] = None
+    creation_max_retries: int = 1
+    recovery_backoff_seconds: float = 0.5
 
 
 @dataclass
@@ -262,60 +264,93 @@ class E2BSandboxManager:
                 self._stats['requests_served'] += 1
 
     async def _create_sandbox(self) -> SandboxInstance:
-        """Create a new E2B sandbox."""
-        try:
-            # Create sandbox with security constraints
-            if (
-                self.config.template_id
-                and E2B_GENERIC_AVAILABLE
-                and GenericSandbox is not None
-            ):
-                # Use custom template via generic E2B SDK
-                # (v2: Sandbox.create, API key comes from env)
-                tmpl = self.config.template_id
-                create_kwargs = {
-                    'template': tmpl,
-                    'timeout': self.config.sandbox_timeout,
-                    'allow_internet_access': False,
-                }
-                if self.config.api_key:
-                    create_kwargs['api_key'] = self.config.api_key
-                sandbox = GenericSandbox.create(**create_kwargs)
-            else:
-                # Fallback to Code Interpreter template
-                if not E2B_CI_AVAILABLE or CodeInterpreterSandbox is None:
-                    raise Exception(
-                        "E2B SDK not available (generic or code interpreter)"
+        """Create a new E2B sandbox with retry support."""
+        attempts = max(1, getattr(self.config, 'creation_max_retries', 1))
+        backoff = getattr(self.config, 'recovery_backoff_seconds', 0.5)
+        last_error: Optional[Exception] = None
+
+        for attempt in range(1, attempts + 1):
+            try:
+                if (
+                    self.config.template_id
+                    and E2B_GENERIC_AVAILABLE
+                    and GenericSandbox is not None
+                ):
+                    tmpl = self.config.template_id
+                    create_kwargs = {
+                        'template': tmpl,
+                        'timeout': self.config.sandbox_timeout,
+                        'allow_internet_access': False,
+                    }
+                    if self.config.api_key:
+                        create_kwargs['api_key'] = self.config.api_key
+                    sandbox = GenericSandbox.create(**create_kwargs)
+                else:
+                    if not E2B_CI_AVAILABLE or CodeInterpreterSandbox is None:
+                        raise Exception(
+                            (
+                                "E2B SDK not available"
+                                " (generic or code interpreter)"
+                            )
+                        )
+                    create_kwargs = {
+                        'allow_internet_access': False,
+                        'timeout': self.config.sandbox_timeout,
+                    }
+                    if self.config.api_key:
+                        create_kwargs['api_key'] = self.config.api_key
+                    sandbox = CodeInterpreterSandbox.create(**create_kwargs)
+
+                instance = SandboxInstance(
+                    id=sandbox.id,
+                    sandbox=sandbox,
+                    created_at=time.time(),
+                    last_used=time.time(),
+                    active_connections=0,
+                    status='healthy'
+                )
+
+                self._pool[sandbox.id] = instance
+                self._stats['sandboxes_created'] += 1
+
+                if attempt > 1:
+                    self.logger.info(
+                        "Recovered E2B sandbox creation on attempt %s: %s",
+                        attempt,
+                        sandbox.id,
                     )
-                create_kwargs = {
-                    'allow_internet_access': False,  # Critical for Tenebris
-                    'timeout': self.config.sandbox_timeout,
-                }
-                if self.config.api_key:
-                    create_kwargs['api_key'] = self.config.api_key
-                sandbox = CodeInterpreterSandbox.create(**create_kwargs)
+                else:
+                    self.logger.info(
+                        "Created new E2B sandbox: %s",
+                        sandbox.id,
+                    )
 
-            # Create instance record
-            instance = SandboxInstance(
-                id=sandbox.id,
-                sandbox=sandbox,
-                created_at=time.time(),
-                last_used=time.time(),
-                active_connections=0,
-                status='healthy'
-            )
+                return instance
 
-            # Add to pool
-            self._pool[sandbox.id] = instance
-            self._stats['sandboxes_created'] += 1
+            except Exception as exc:
+                self._stats['errors'] += 1
+                last_error = exc
+                if attempt < attempts:
+                    self.logger.warning(
+                        "Sandbox creation failed (attempt %s/%s): %s",
+                        attempt,
+                        attempts,
+                        exc,
+                    )
+                    await asyncio.sleep(backoff)
+                else:
+                    self.logger.error(
+                        f"Failed to create E2B sandbox: {exc}"
+                    )
+                    self.logger.error(
+                        "Sandbox creation exhausted retries (%s attempts)",
+                        attempts,
+                    )
 
-            self.logger.info(f"Created new E2B sandbox: {sandbox.id}")
-            return instance
+        if last_error is not None:
+            raise last_error
 
-        except Exception as e:
-            self._stats['errors'] += 1
-            self.logger.error(f"Failed to create E2B sandbox: {e}")
-            raise
+        raise RuntimeError("Sandbox creation failed without error context")
 
     async def _ensure_minimum_pool(self):
         """Ensure minimum number of sandboxes are available."""

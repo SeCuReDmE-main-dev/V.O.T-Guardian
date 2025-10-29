@@ -36,6 +36,24 @@ class _RecorderEventsApi:
         self.requests.append(request)
 
 
+class _ConfigurableEventsApi:
+    """Events API stub that fails a preset number of attempts."""
+
+    failures: int = 0
+
+    def __init__(self, api_client):
+        self.api_client = api_client
+        self.calls = 0
+        self.requests = []
+
+    def create_event(self, request):
+        self.calls += 1
+        self.requests.append(request)
+        if _ConfigurableEventsApi.failures > 0:
+            _ConfigurableEventsApi.failures -= 1
+            raise TimeoutError("datadog timeout")
+
+
 class _RecorderStatsd:
     def __init__(self):
         self.calls: List[tuple[str, str, float, Optional[List[str]]]] = []
@@ -72,6 +90,29 @@ class _FailingStatsd:
         raise TimeoutError("statsd timeout")
 
 
+class _FlakyStatsd:
+    """StatsD stub that fails a configurable number of attempts."""
+
+    def __init__(self, failures: int):
+        self.remaining = failures
+        self.calls: List[str] = []
+
+    def _maybe_fail(self, method: str):
+        self.calls.append(method)
+        if self.remaining > 0:
+            self.remaining -= 1
+            raise TimeoutError("transient statsd failure")
+
+    def histogram(self, name, value, *, tags=None):
+        self._maybe_fail("histogram")
+
+    def increment(self, name, value, *, tags=None):
+        self._maybe_fail("increment")
+
+    def gauge(self, name, value, *, tags=None):
+        self._maybe_fail("gauge")
+
+
 @pytest.fixture(autouse=True)
 def reset_datadog_module(monkeypatch):
     """Ensure each test starts from a clean availability flag."""
@@ -81,6 +122,7 @@ def reset_datadog_module(monkeypatch):
         False,
         raising=False,
     )
+    _ConfigurableEventsApi.failures = 0
     yield
 
 
@@ -90,7 +132,12 @@ def anyio_backend():
     return "asyncio"
 
 
-def _enable_datadog(monkeypatch, *, statsd: Optional[_RecorderStatsd] = None):
+def _enable_datadog(
+    monkeypatch,
+    *,
+    statsd: Optional[_RecorderStatsd] = None,
+    events_cls=None,
+):
     """Configure Datadog module with stubbed SDK objects for success paths."""
     monkeypatch.setattr(
         datadog_module,
@@ -113,7 +160,7 @@ def _enable_datadog(monkeypatch, *, statsd: Optional[_RecorderStatsd] = None):
     monkeypatch.setattr(
         datadog_module,
         "EventsApi",
-        _RecorderEventsApi,
+        events_cls or _RecorderEventsApi,
         raising=False,
     )
 
@@ -156,6 +203,59 @@ def test_metric_success_logs_without_failover(monkeypatch, caplog):
     assert client._failover_active is False
 
 
+def test_metric_retry_chain_recovers(monkeypatch, caplog):
+    flaky = _FlakyStatsd(failures=2)
+    _enable_datadog(monkeypatch, statsd=flaky)
+
+    caplog.set_level(logging.WARNING, logger=LOGGER)
+
+    client = DatadogClient(
+        config=DatadogConfig(
+            api_key="token",
+            app_key="app",
+            max_retries=3,
+            retry_backoff_seconds=0,
+        )
+    )
+
+    client.record_metric("vot.analysis.latency_ms", 64.0)
+
+    assert flaky.calls.count("histogram") == 3
+    assert any(
+        "Datadog retry scheduled for metric" in record.message
+        for record in caplog.records
+    )
+    assert any(
+        "Datadog metric recorded" in record.message
+        for record in caplog.records
+    )
+    assert client._failover_active is False
+
+
+def test_metric_retry_chain_exhausts(monkeypatch, caplog):
+    failing = _FailingStatsd()
+    _enable_datadog(monkeypatch, statsd=failing)
+
+    caplog.set_level(logging.ERROR, logger=LOGGER)
+
+    client = DatadogClient(
+        config=DatadogConfig(
+            api_key="token",
+            max_retries=2,
+            retry_backoff_seconds=0,
+        )
+    )
+
+    client.record_metric("vot.analysis.latency_ms", 96.0)
+
+    assert failing.calls == ["histogram", "histogram"]
+    assert any(
+        "Datadog metric permanently failed" in record.message
+        for record in caplog.records
+    )
+    assert client._failover_active is True
+
+
 @pytest.mark.anyio
 async def test_log_event_success_emits_info(monkeypatch, caplog):
     statsd = _RecorderStatsd()
@@ -186,6 +286,72 @@ async def test_log_event_success_emits_info(monkeypatch, caplog):
     ]
     assert info_logs
     assert client._failover_active is False
+
+
+@pytest.mark.anyio
+async def test_log_event_retry_chain_recovers(monkeypatch, caplog):
+    statsd = _RecorderStatsd()
+    _ConfigurableEventsApi.failures = 2
+    _enable_datadog(
+        monkeypatch,
+        statsd=statsd,
+        events_cls=_ConfigurableEventsApi,
+    )
+
+    caplog.set_level(logging.WARNING, logger=LOGGER)
+
+    client = DatadogClient(
+        config=DatadogConfig(
+            api_key="token",
+            app_key="app",
+            max_retries=3,
+            retry_backoff_seconds=0,
+        )
+    )
+
+    await client.log_event("RetryEvent", {"stage": "retry"})
+
+    assert client.events_api.calls == 3
+    assert any(
+        "Datadog retry scheduled for event" in record.message
+        for record in caplog.records
+    )
+    assert any(
+        "Datadog event published" in record.message
+        for record in caplog.records
+    )
+    assert client._failover_active is False
+
+
+@pytest.mark.anyio
+async def test_log_event_retry_chain_exhausts(monkeypatch, caplog):
+    statsd = _RecorderStatsd()
+    _ConfigurableEventsApi.failures = 5
+    _enable_datadog(
+        monkeypatch,
+        statsd=statsd,
+        events_cls=_ConfigurableEventsApi,
+    )
+
+    caplog.set_level(logging.ERROR, logger=LOGGER)
+
+    client = DatadogClient(
+        config=DatadogConfig(
+            api_key="token",
+            app_key="app",
+            max_retries=3,
+            retry_backoff_seconds=0,
+        )
+    )
+
+    await client.log_event("RetryEvent", {"stage": "fail"})
+
+    assert client.events_api.calls == 3
+    assert any(
+        "Datadog event permanently failed" in record.message
+        for record in caplog.records
+    )
+    assert client._failover_active is True
 
 
 def test_missing_api_key_triggers_failover_logs(monkeypatch, caplog):
