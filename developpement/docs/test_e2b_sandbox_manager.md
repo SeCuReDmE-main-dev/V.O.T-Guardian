@@ -32,8 +32,8 @@ All entries originate from `src.core.e2b.sandbox_manager` and are captured via `
 
 ## Blind Spots and Future Coverage
 
-1. Timer-driven `_health_check_loop` and asynchronous cancellation semantics are validated indirectly; integrate a dedicated test with a shorter interval and manual cancellation to cover edge cases.
-2. Scale-in heuristics for oversized pools (idle trim) remain untested; add fixtures that populate idle healthy sandboxes to confirm downsizing decisions.
+1. Health loop coverage now includes cancellation and recovery, but long-running drift detection (hours-long windows) still needs synthetic timers.
+2. Scale-in trimming validated for homogeneous pools; mixed template pools and quota-aware downsizing remain TODO.
 3. Multi-template and Code Interpreter fallbacks are still mocked out; incorporate availability toggles once SDK stubs are prepared.
 4. Long-lived sandboxes and file transfer helpers are not exercised; consider integration hooks once fixture assets are available.
 
