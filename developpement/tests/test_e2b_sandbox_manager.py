@@ -14,6 +14,7 @@ def anyio_backend():
     return "asyncio"
 
 
+@pytest.mark.anyio
 async def test_sandbox_lifecycle_happy_path(monkeypatch, caplog):
     caplog.set_level(logging.INFO, logger="src.core.e2b.sandbox_manager")
 
@@ -93,6 +94,7 @@ async def test_sandbox_lifecycle_happy_path(monkeypatch, caplog):
     )
 
 
+@pytest.mark.anyio
 async def test_sandbox_creation_quota_error(monkeypatch, caplog):
     caplog.set_level(logging.ERROR, logger="src.core.e2b.sandbox_manager")
 
