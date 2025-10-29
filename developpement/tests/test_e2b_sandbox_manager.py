@@ -386,3 +386,96 @@ async def test_acquire_sandbox_logs_pool_exhaustion(caplog):
     assert any(
         "Sandbox pool exhausted" in record.message for record in caplog.records
     )
+
+
+@pytest.mark.anyio
+async def test_scale_pool_trims_idle_sandboxes(caplog):
+    caplog.set_level(logging.INFO, logger="src.core.e2b.sandbox_manager")
+
+    destroyed = []
+
+    class KillableSandbox:
+        def __init__(self, name: str):
+            self.name = name
+
+        def kill(self):
+            destroyed.append(self.name)
+
+    config = SandboxConfig(
+        api_key="fake",
+        min_pool_size=1,
+        max_pool_size=10,
+        sandbox_timeout=5,
+        health_check_interval=1,
+        max_concurrent_per_sandbox=1,
+    )
+
+    manager = E2BSandboxManager(config=config)
+
+    manager._pool = {
+        f"sb-{idx}": SandboxInstance(
+            id=f"sb-{idx}",
+            sandbox=KillableSandbox(f"sb-{idx}"),
+            created_at=0.0,
+            last_used=0.0,
+            active_connections=0,
+            status='healthy',
+        )
+        for idx in range(1, 8)
+    }
+
+    await manager._scale_pool(healthy_count=7)
+
+    assert len(manager._pool) == 5
+    assert destroyed == ["sb-1", "sb-2"]
+    assert manager._stats["sandboxes_destroyed"] == 2
+    assert any(
+        "Destroyed E2B sandbox" in record.message for record in caplog.records
+    )
+
+
+@pytest.mark.anyio
+async def test_health_check_loop_cycles_and_logs(monkeypatch, caplog):
+    caplog.set_level(logging.ERROR, logger="src.core.e2b.sandbox_manager")
+
+    config = SandboxConfig(
+        api_key="fake",
+        min_pool_size=0,
+        max_pool_size=1,
+        sandbox_timeout=5,
+        health_check_interval=1,
+        max_concurrent_per_sandbox=1,
+    )
+
+    manager = E2BSandboxManager(config=config)
+
+    events = []
+    sleep_calls = 0
+    real_sleep = asyncio.sleep
+
+    async def fake_perform():
+        events.append("tick")
+        if len(events) == 2:
+            raise RuntimeError("synthetic health failure")
+
+    async def fake_sleep(_interval):
+        nonlocal sleep_calls
+        sleep_calls += 1
+        if sleep_calls >= 4:
+            raise asyncio.CancelledError()
+        await real_sleep(0)
+
+    manager._perform_health_checks = fake_perform  # type: ignore[assignment]
+    monkeypatch.setattr(sandbox_module.asyncio, "sleep", fake_sleep)
+
+    task = asyncio.create_task(manager._health_check_loop())
+    await real_sleep(0)
+    await real_sleep(0)
+    await task
+
+    assert events == ["tick", "tick", "tick"]
+    assert sleep_calls >= 3
+    assert any(
+        "Health check error: synthetic health failure" in record.message
+        for record in caplog.records
+    )
