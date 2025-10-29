@@ -17,8 +17,8 @@ Command: `PYTHONPATH=. pytest --cov=src --cov-report=term-missing`
 
 ## Under-tested modules (<50% coverage)
 
-- `src/core/monitoring/datadog_client.py` – 42%: metric/event dispatch paths (success, retries, API key failure) remain unverified.
-- `src/core/security/tenebris.py` – 43%: cryptographic policy enforcement and fallback handling lack regression coverage.
+- `src/core/monitoring/datadog_client.py` - 42%: metric/event dispatch paths (success, retries, API key failure) remain unverified.
+- `src/core/security/tenebris.py` - 43%: cryptographic policy enforcement and fallback handling lack regression coverage.
 
 ## Immediate focus
 
