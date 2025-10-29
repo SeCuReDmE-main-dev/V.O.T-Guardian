@@ -84,6 +84,158 @@ async def test_sandbox_lifecycle_happy_path(monkeypatch, caplog):
 
     await manager.stop()
 
+@pytest.mark.anyio
+async def test_sandbox_creation_transient_failure_recovers(monkeypatch, caplog):
+    caplog.set_level(logging.INFO, logger="src.core.e2b.sandbox_manager")
+
+    class FlakySandbox:
+        counter = 0
+        failures = 2
+
+        @classmethod
+        def create(cls, **kwargs):
+            if cls.failures > 0:
+                cls.failures -= 1
+                raise RuntimeError("transient network error")
+            cls.counter += 1
+            return types.SimpleNamespace(id=f"flaky-{cls.counter}")
+
+    monkeypatch.setattr(sandbox_module, "GenericSandbox", FlakySandbox)
+    monkeypatch.setattr(sandbox_module, "E2B_GENERIC_AVAILABLE", True)
+    monkeypatch.setattr(sandbox_module, "CodeInterpreterSandbox", None)
+    monkeypatch.setattr(sandbox_module, "E2B_CI_AVAILABLE", False)
+
+    config = SandboxConfig(
+        api_key="fake",
+        min_pool_size=0,
+        max_pool_size=2,
+        sandbox_timeout=5,
+        health_check_interval=1,
+        max_concurrent_per_sandbox=1,
+        template_id="tmpl-456",
+        creation_max_retries=3,
+        recovery_backoff_seconds=0,
+    )
+
+    manager = E2BSandboxManager(config=config)
+    instance = await manager._create_sandbox()
+
+    assert instance.id == "flaky-1"
+    assert manager._stats["sandboxes_created"] == 1
+    assert manager._stats["errors"] == 2
+    assert any(
+        "Sandbox creation failed" in record.message
+        for record in caplog.records
+    )
+    assert any(
+        "Recovered E2B sandbox creation" in record.message
+        for record in caplog.records
+    )
+
+
+@pytest.mark.anyio
+async def test_sandbox_creation_retry_exhaustion_logs_error(monkeypatch, caplog):
+    caplog.set_level(logging.ERROR, logger="src.core.e2b.sandbox_manager")
+
+    class DeadSandbox:
+        @classmethod
+        def create(cls, **kwargs):
+            raise RuntimeError("quota hard fail")
+
+    monkeypatch.setattr(sandbox_module, "GenericSandbox", DeadSandbox)
+    monkeypatch.setattr(sandbox_module, "E2B_GENERIC_AVAILABLE", True)
+    monkeypatch.setattr(sandbox_module, "CodeInterpreterSandbox", None)
+    monkeypatch.setattr(sandbox_module, "E2B_CI_AVAILABLE", False)
+
+    config = SandboxConfig(
+        api_key="fake",
+        min_pool_size=0,
+        max_pool_size=1,
+        sandbox_timeout=5,
+        health_check_interval=1,
+        max_concurrent_per_sandbox=1,
+        template_id="tmpl-789",
+        creation_max_retries=2,
+        recovery_backoff_seconds=0,
+    )
+
+    manager = E2BSandboxManager(config=config)
+
+    with pytest.raises(RuntimeError, match="quota hard fail"):
+        await manager._create_sandbox()
+
+    assert manager._stats["errors"] == 2
+    assert any(
+        "Sandbox creation exhausted retries" in record.message
+        for record in caplog.records
+    )
+
+
+@pytest.mark.anyio
+async def test_dead_sandbox_replaced_during_scale(monkeypatch, caplog):
+    caplog.set_level(logging.INFO, logger="src.core.e2b.sandbox_manager")
+
+    destroy_calls = []
+
+    class SimpleSandbox:
+        counter = 0
+
+        @classmethod
+        def create(cls, **kwargs):
+            cls.counter += 1
+            return types.SimpleNamespace(id=f"sb-{cls.counter}")
+
+    def kill_stub():
+        destroy_calls.append("kill")
+
+    monkeypatch.setattr(sandbox_module, "GenericSandbox", SimpleSandbox)
+    monkeypatch.setattr(sandbox_module, "E2B_GENERIC_AVAILABLE", True)
+    monkeypatch.setattr(sandbox_module, "CodeInterpreterSandbox", None)
+    monkeypatch.setattr(sandbox_module, "E2B_CI_AVAILABLE", False)
+
+    config = SandboxConfig(
+        api_key="fake",
+        min_pool_size=1,
+        max_pool_size=2,
+        sandbox_timeout=5,
+        health_check_interval=1,
+        max_concurrent_per_sandbox=1,
+        template_id="tmpl-990",
+        creation_max_retries=1,
+        recovery_backoff_seconds=0,
+    )
+
+    manager = E2BSandboxManager(config=config)
+    manager._pool = {
+        "sb-old": SandboxInstance(
+            id="sb-old",
+            sandbox=types.SimpleNamespace(kill=kill_stub),
+            created_at=0.0,
+            last_used=0.0,
+            active_connections=0,
+            status='dead',
+        )
+    }
+
+    await manager._destroy_sandbox("sb-old")
+    await manager._scale_pool(0)
+
+    assert destroy_calls == ["kill"]
+    assert manager._stats["sandboxes_destroyed"] == 1
+    assert manager.get_pool_stats()["total_sandboxes"] == 1
+    new_id = next(iter(manager._pool.keys()))
+    assert new_id.startswith("sb-")
+    assert any(
+        "Destroyed E2B sandbox" in record.message
+        for record in caplog.records
+    )
+    assert any(
+        "Created new E2B sandbox" in record.message
+        for record in caplog.records
+    )
+
+
+
     post_stop_stats = manager.get_pool_stats()["stats"]
     assert post_stop_stats["sandboxes_destroyed"] == 1
     assert len(manager._pool) == 0
