@@ -15,6 +15,7 @@ Features:
 Author: Jean-Sébastien Beaulieu
 """
 
+import asyncio
 import os
 import time
 import logging
@@ -40,6 +41,8 @@ class DatadogConfig:
     service_name: str = "vot-guardian"
     env: str = "development"
     version: str = "1.0.0"
+    max_retries: int = 1
+    retry_backoff_seconds: float = 0.25
 
 
 class DatadogClient:
@@ -135,6 +138,8 @@ class DatadogClient:
             alert_type: Event alert type (info, success, warning, error)
             tags: Additional tags for the event
         """
+        attempts = max(1, self.config.max_retries)
+
         try:
             # Create event payload
             event_text = f"""
@@ -166,17 +171,52 @@ class DatadogClient:
             )
 
             # Send event (if Datadog is available)
-            if self.events_api:
-                self.events_api.create_event(event_request)
-                self._failover_active = False
-                self.logger.info(
-                    "Datadog event published: %s",
-                    title,
-                )
-            else:
+            if not self.events_api:
                 self._record_failover(
                     "Events API unavailable; event buffered locally",
                     level=logging.WARNING,
+                )
+                return
+
+            last_error: Optional[Exception] = None
+            for attempt in range(1, attempts + 1):
+                try:
+                    self.events_api.create_event(event_request)
+                    self._failover_active = False
+                    self.logger.info(
+                        "Datadog event published: %s",
+                        title,
+                    )
+                    return
+                except Exception as exc:
+                    last_error = exc
+                    self._record_failover(
+                        (
+                            "Failed to log event to Datadog"
+                            f" (attempt {attempt}): {exc}"
+                        ),
+                        level=logging.ERROR,
+                    )
+                    if attempt < attempts:
+                        self.logger.warning(
+                            (
+                                "Datadog retry scheduled for event %s"
+                                " (attempt %s/%s)"
+                            ),
+                            title,
+                            attempt + 1,
+                            attempts,
+                        )
+                        await asyncio.sleep(
+                            self.config.retry_backoff_seconds
+                        )
+
+            if last_error is not None:
+                self.logger.error(
+                    (
+                        "Datadog event permanently failed"
+                        f" after {attempts} attempts: {last_error}"
+                    )
                 )
 
         except Exception as e:
@@ -216,40 +256,80 @@ class DatadogClient:
             )
             return
 
-        try:
-            # Add default tags
-            default_tags = [
-                f'service:{self.config.service_name}',
-                f'env:{self.config.env}'
-            ]
+        attempts = max(1, self.config.max_retries)
 
-            if tags:
-                default_tags.extend([f'{k}:{v}' for k, v in tags.items()])
+        # Add default tags
+        default_tags = [
+            f'service:{self.config.service_name}',
+            f'env:{self.config.env}'
+        ]
 
-            # Record metric based on type
-            if (
-                'latency' in metric_name.lower()
-                or 'time' in metric_name.lower()
-            ):
-                self.statsd.histogram(metric_name, value, tags=default_tags)
-            elif (
-                'rate' in metric_name.lower()
-                or 'count' in metric_name.lower()
-            ):
-                self.statsd.increment(metric_name, value, tags=default_tags)
-            else:
-                self.statsd.gauge(metric_name, value, tags=default_tags)
+        if tags:
+            default_tags.extend([f'{k}:{v}' for k, v in tags.items()])
 
-            self._failover_active = False
-            self.logger.info(
-                "Datadog metric recorded: %s",
-                metric_name,
-            )
+        last_error: Optional[Exception] = None
 
-        except Exception as e:
-            self._record_failover(
-                f"Failed to record metric: {e}",
-                level=logging.ERROR,
+        for attempt in range(1, attempts + 1):
+            try:
+                if (
+                    'latency' in metric_name.lower()
+                    or 'time' in metric_name.lower()
+                ):
+                    self.statsd.histogram(
+                        metric_name,
+                        value,
+                        tags=default_tags,
+                    )
+                elif (
+                    'rate' in metric_name.lower()
+                    or 'count' in metric_name.lower()
+                ):
+                    self.statsd.increment(
+                        metric_name,
+                        value,
+                        tags=default_tags,
+                    )
+                else:
+                    self.statsd.gauge(
+                        metric_name,
+                        value,
+                        tags=default_tags,
+                    )
+
+                self._failover_active = False
+                self.logger.info(
+                    "Datadog metric recorded: %s",
+                    metric_name,
+                )
+                return
+
+            except Exception as exc:
+                last_error = exc
+                self._record_failover(
+                    (
+                        "Failed to record metric"
+                        f" (attempt {attempt}): {exc}"
+                    ),
+                    level=logging.ERROR,
+                )
+                if attempt < attempts:
+                    self.logger.warning(
+                        (
+                            "Datadog retry scheduled for metric %s"
+                            " (attempt %s/%s)"
+                        ),
+                        metric_name,
+                        attempt + 1,
+                        attempts,
+                    )
+                    time.sleep(self.config.retry_backoff_seconds)
+
+        if last_error is not None:
+            self.logger.error(
+                (
+                    "Datadog metric permanently failed"
+                    f" after {attempts} attempts: {last_error}"
+                )
             )
 
     def record_analysis_metrics(
