@@ -168,6 +168,11 @@ class DatadogClient:
             # Send event (if Datadog is available)
             if self.events_api:
                 self.events_api.create_event(event_request)
+                self._failover_active = False
+                self.logger.info(
+                    "Datadog event published: %s",
+                    title,
+                )
             else:
                 self._record_failover(
                     "Events API unavailable; event buffered locally",
@@ -234,6 +239,12 @@ class DatadogClient:
                 self.statsd.increment(metric_name, value, tags=default_tags)
             else:
                 self.statsd.gauge(metric_name, value, tags=default_tags)
+
+            self._failover_active = False
+            self.logger.info(
+                "Datadog metric recorded: %s",
+                metric_name,
+            )
 
         except Exception as e:
             self._record_failover(
