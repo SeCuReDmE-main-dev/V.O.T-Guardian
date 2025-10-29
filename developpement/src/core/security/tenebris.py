@@ -102,6 +102,11 @@ class TenebrisProtocol:
             yield sandbox_id
 
         except Exception as e:
+            session_state = self._active_sessions.get(session_id)
+            if session_state is not None:
+                session_state['status'] = 'violation'
+                session_state['error'] = str(e)
+                session_state['last_violation_at'] = time.time()
             # Log violation
             await self._log_audit_event("TENEBRIS_VIOLATION", {
                 'session_id': session_id,
@@ -179,6 +184,11 @@ class TenebrisProtocol:
                 'error': str(e),
                 'failure_time_ms': (time.time() - start_time) * 1000
             })
+            session_state = self._active_sessions.get(session_id)
+            if session_state is not None:
+                session_state['status'] = 'violation'
+                session_state['error'] = str(e)
+                session_state['last_violation_at'] = time.time()
             raise TenebrisViolationException(f"Failed to execute destruction protocol: {e}")
 
     async def _destroy_e2b_sandbox(self, session_id: str):

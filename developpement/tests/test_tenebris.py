@@ -121,6 +121,86 @@ async def test_cleanup_clears_sandbox_and_keys(encryption_enabled):
 
 
 @pytest.mark.anyio
+async def test_destroyed_sandbox_access_logs_violation(monkeypatch, caplog):
+    caplog.set_level(logging.WARNING, logger=LOGGER)
+
+    protocol = TenebrisProtocol()
+
+    async def already_destroyed(session_id: str):
+        protocol.logger.warning("Sandbox already destroyed for %s", session_id)
+        raise RuntimeError("sandbox already destroyed")
+
+    monkeypatch.setattr(protocol, "_destroy_e2b_sandbox", already_destroyed)
+
+    with pytest.raises(TenebrisViolationException):
+        async with protocol.execute_protocol("call-stale"):
+            pass
+
+    payloads = _extract_event_payloads()
+    assert any(
+        p.get("event_type") == "TENEBRIS_DESTRUCTION_FAILED"
+        for p in payloads
+    )
+    assert not any(
+        p.get("event_type") == "TENEBRIS_PURGE_COMPLETE"
+        for p in payloads
+    )
+
+    assert any(
+        "Sandbox already destroyed" in record.message
+        for record in caplog.records
+    )
+
+    status = protocol.get_protocol_status("call-stale")
+    assert status.get("status") == "violation"
+
+    session_id = status.get("session_id")
+    assert session_id is not None
+    assert "error" in protocol._active_sessions[session_id]
+
+
+@pytest.mark.anyio
+async def test_key_revocation_violation_records_diagnostics(
+    monkeypatch,
+    caplog,
+):
+    caplog.set_level(logging.ERROR, logger=LOGGER)
+
+    protocol = TenebrisProtocol()
+
+    async def failing_revoke(session_id: str):
+        protocol.logger.error(
+            "Unauthorized key access while revoking for %s",
+            session_id,
+        )
+        raise PermissionError("unauthorized key access")
+
+    monkeypatch.setattr(protocol, "_revoke_crypto_keys", failing_revoke)
+
+    with pytest.raises(TenebrisViolationException):
+        async with protocol.execute_protocol("call-unauthorized"):
+            pass
+
+    payloads = _extract_event_payloads()
+    failure_events = [
+        p for p in payloads
+        if p.get("event_type") == "TENEBRIS_DESTRUCTION_FAILED"
+    ]
+    assert failure_events
+    metadata = failure_events[0].get("metadata", {})
+    assert metadata.get("call_id") == "call-unauthorized"
+    assert "unauthorized" in metadata.get("error", "")
+
+    assert any(
+        "Unauthorized key access" in record.message
+        for record in caplog.records
+    )
+
+    status = protocol.get_protocol_status("call-unauthorized")
+    assert status.get("status") == "violation"
+
+
+@pytest.mark.anyio
 async def test_execute_protocol_violation_emits_audit(monkeypatch):
     protocol = TenebrisProtocol()
 
