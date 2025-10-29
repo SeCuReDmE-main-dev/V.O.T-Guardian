@@ -1,5 +1,6 @@
 """Integration-style tests for the E2B sandbox manager."""
 
+import asyncio
 import logging
 import types
 

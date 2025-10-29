@@ -104,15 +104,53 @@ class _DummyPool:
         return _DummyAcquire(self._conn)
 
 
+class _DummyTransaction:
+    """Asynchronous transaction stub tracking commit/rollback."""
+
+    def __init__(self):
+        self.committed = False
+        self.rolled_back = False
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb):
+        if exc_type is not None:
+            self.rolled_back = True
+        else:
+            self.committed = True
+        return False
+
+
+class _TransactionalConnection:
+    """Base connection providing transaction context manager."""
+
+    def __init__(self):
+        self.transactions = []
+
+    def transaction(self):
+        tx = _DummyTransaction()
+        self.transactions.append(tx)
+        return tx
+
+
 def test_store_analysis_result_logs_and_raises_on_error(caplog):
     client = PostgreSQLClient()
     caplog.set_level("ERROR", logger="src.core.database.postgresql_client")
 
-    class FailingConnection:
-        async def execute(self, *args, **kwargs):  # pragma: no cover - exercised via test
+    class FailingConnection(_TransactionalConnection):
+        def __init__(self):
+            super().__init__()
+
+        async def execute(
+            self,
+            *args,
+            **kwargs,
+        ):  # pragma: no cover - exercised via test
             raise RuntimeError("constraint violation")
 
-    client.pool = _DummyPool(FailingConnection())
+    failing_conn = FailingConnection()
+    client.pool = _DummyPool(failing_conn)
 
     async def run_store():
         await client.store_analysis_result({
@@ -131,6 +169,9 @@ def test_store_analysis_result_logs_and_raises_on_error(caplog):
         and "constraint violation" in record.message
         for record in caplog.records
     )
+    assert failing_conn.transactions
+    assert failing_conn.transactions[0].rolled_back is True
+    assert failing_conn.transactions[0].committed is False
 
 
 def test_get_analysis_result_invalid_json_logs_and_returns_raw(caplog):
@@ -160,6 +201,76 @@ def test_get_analysis_result_invalid_json_logs_and_returns_raw(caplog):
     assert result["features"] == "{invalid json}"
     assert any(
         "Failed to decode features JSON" in record.message
+        for record in caplog.records
+    )
+
+
+def test_get_analysis_result_corrupted_numeric_logs_and_returns_none(caplog):
+    client = PostgreSQLClient()
+    caplog.set_level("ERROR", logger="src.core.database.postgresql_client")
+
+    fake_row = DummyRecord(
+        id=99,
+        call_id="call_corrupted",
+        prediction="AI",
+        confidence="not-a-number",
+        features=json.dumps({"vot": 0.41}),
+        processing_time_ms="broken",
+        created_at=mock.Mock(isoformat=lambda: "2025-10-29T09:45:00"),
+    )
+
+    class CorruptConnection:
+        async def fetchrow(self, query: str, call_id: str):
+            assert call_id == "call_corrupted"
+            return fake_row
+
+    client.pool = _DummyPool(CorruptConnection())
+
+    result = asyncio.run(client.get_analysis_result("call_corrupted"))
+
+    assert result is None
+    assert any(
+        "Error retrieving analysis result" in record.message
+        and "could not convert string to float" in record.message
+        for record in caplog.records
+    )
+
+
+def test_store_analysis_result_transaction_rolls_back_on_runtime_error(caplog):
+    client = PostgreSQLClient()
+    caplog.set_level("ERROR", logger="src.core.database.postgresql_client")
+
+    class TxConnection(_TransactionalConnection):
+        def __init__(self):
+            super().__init__()
+            self.executed_payloads = []
+
+        async def execute(self, query, *params):
+            self.executed_payloads.append((query, params))
+            raise RuntimeError("synthetic failure during insert")
+
+    tx_conn = TxConnection()
+    client.pool = _DummyPool(tx_conn)
+
+    async def do_store():
+        await client.store_analysis_result({
+            "call_id": "rollback-call",
+            "prediction": "AI",
+            "confidence": 0.66,
+            "features": {"vot": 0.32},
+            "processing_time_ms": 45.6,
+        })
+
+    with pytest.raises(RuntimeError, match="synthetic failure"):
+        asyncio.run(do_store())
+
+    assert tx_conn.transactions
+    tx = tx_conn.transactions[0]
+    assert tx.rolled_back is True
+    assert tx.committed is False
+    assert any(
+        "Error storing analysis result" in record.message
+        and "synthetic failure" in record.message
         for record in caplog.records
     )
 
