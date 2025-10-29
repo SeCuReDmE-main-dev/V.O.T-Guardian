@@ -7,8 +7,9 @@ import pytest
 from src.core.e2b import sandbox_manager as sandbox_module
 from src.core.e2b.sandbox_manager import E2BSandboxManager, SandboxConfig
 
+pytestmark = pytest.mark.anyio("asyncio")
 
-@pytest.mark.anyio
+
 async def test_sandbox_lifecycle_happy_path(monkeypatch, caplog):
     caplog.set_level(logging.INFO, logger="src.core.e2b.sandbox_manager")
 
@@ -86,9 +87,6 @@ async def test_sandbox_lifecycle_happy_path(monkeypatch, caplog):
         "Destroyed E2B sandbox" in record.message
         for record in caplog.records
     )
-
-
-@pytest.mark.anyio
 async def test_sandbox_creation_quota_error(monkeypatch, caplog):
     caplog.set_level(logging.ERROR, logger="src.core.e2b.sandbox_manager")
 
