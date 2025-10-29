@@ -86,7 +86,11 @@ async def test_execute_protocol_success_logs_and_cleans(caplog):
 async def test_execute_protocol_violation_emits_audit(monkeypatch):
     protocol = TenebrisProtocol()
 
-    async def failing_create(session_id: str, call_id: str, encryption_key: bytes):
+    async def failing_create(
+        session_id: str,
+        call_id: str,
+        encryption_key: bytes,
+    ):
         raise RuntimeError("sandbox failure")
 
     monkeypatch.setattr(protocol, "_create_isolated_sandbox", failing_create)
