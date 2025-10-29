@@ -29,3 +29,8 @@
 2025-10-28 23:00:46,507 INFO ACTIVE_SESSION_NO_ENCRYPTION {... 'sandbox_id': 'sb_diagnostic-no-crypto_1761706846', 'encryption_key': None}
 2025-10-28 23:00:46,574 INFO POST_CLEANUP_NO_ENCRYPTION {}
 ```
+
+## Violation Coverage Snapshot
+
+- Tests `tests/test_tenebris.py::test_destroyed_sandbox_access_logs_violation` and `test_key_revocation_violation_records_diagnostics` simulate sandbox reuse and unauthorized key revocation, asserting `TENEBRIS_DESTRUCTION_FAILED` audit trails and logger output.
+- Archive: `docs/samples_tenebris_violation.log` records the before/after session state for both scenarios, including status transitions to `violation`, captured errors, and residual session metadata preserved for forensics.
