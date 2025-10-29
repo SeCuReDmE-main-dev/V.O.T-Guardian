@@ -1,4 +1,5 @@
-"""
+print('hello')"""
+
 PostgreSQL Client - Database Operations
 =======================================
 
