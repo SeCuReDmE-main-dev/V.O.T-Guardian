@@ -26,10 +26,6 @@ from typing import Any, Dict, Optional
 import asyncpg
 
 
-@dataclass
-class DatabaseConfig:
-    """Configuration for PostgreSQL database."""
-    url: str
     min_connections: int = 5
     max_connections: int = 20
     command_timeout: int = 60
