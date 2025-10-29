@@ -386,10 +386,10 @@ This project is proprietary software developed for protecting elderly individual
 
 For technical support or questions:
 
-- **Email**: support@vot-guardian.ca
+- **Email**: [support@vot-guardian.ca](mailto:support@vot-guardian.ca)
 - **Documentation**: [https://docs.vot-guardian.ca](https://docs.vot-guardian.ca)
 - **Status Page**: [https://status.vot-guardian.ca](https://status.vot-guardian.ca)
 
 ---
 
-**Built with ❤️ for protecting our elders from AI voice fraud**
+Built with ❤️ for protecting our elders from AI voice fraud
