@@ -8,6 +8,7 @@ import pytest
 
 from src.core.security import tenebris as tenebris_module
 from src.core.security.tenebris import (
+    TenebrisConfig,
     TenebrisProtocol,
     TenebrisViolationException,
 )
@@ -80,6 +81,43 @@ async def test_execute_protocol_success_logs_and_cleans(caplog):
         "Destroying E2B sandbox" in record.message
         for record in caplog.records
     )
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("encryption_enabled", [True, False])
+async def test_cleanup_clears_sandbox_and_keys(encryption_enabled):
+    config = TenebrisConfig(encryption_enabled=encryption_enabled)
+    protocol = TenebrisProtocol(config=config)
+
+    async with protocol.execute_protocol("call-cleanup") as sandbox_id:
+        session_id, session_state = next(
+            iter(protocol._active_sessions.items())
+        )
+        assert session_state.get("sandbox_id") == sandbox_id
+        if encryption_enabled:
+            assert session_state.get("encryption_key") is not None
+        else:
+            assert session_state.get("encryption_key") is None
+
+    assert protocol._active_sessions == {}
+
+    purge_events = [
+        json.loads(event["text"])
+        for event in _DatadogRecorder.events
+        if event.get("title") == "Tenebris Protocol: TENEBRIS_PURGE_COMPLETE"
+    ]
+    assert purge_events
+    purge_metadata = purge_events[0].get("metadata", {})
+    assert "sandbox_id" not in purge_metadata
+    assert "encryption_key" not in purge_metadata
+
+    serialized_state = json.dumps(protocol._active_sessions)
+    assert "sb_" not in serialized_state
+
+    report = protocol.get_compliance_report()
+    assert report["active_sessions"] == 0
+    assert report["completed_sessions"] == 0
+    assert report["compliance_rate"] == 100
 
 
 @pytest.mark.anyio
