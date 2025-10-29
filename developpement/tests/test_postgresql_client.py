@@ -468,3 +468,117 @@ async def test_connect_retries_exhaustion_raises(monkeypatch, caplog):
         "Failed to connect to database after 2 attempts" in record.message
         for record in caplog.records
     )
+
+
+class _InitFailurePool:
+    """Pool stub capturing close calls for initialization failure tests."""
+
+    def __init__(self):
+        self.closed = False
+
+    async def close(self):
+        self.closed = True
+
+    def acquire(self):
+        return _DummyAcquire(_TransactionalConnection())
+
+
+@pytest.mark.anyio
+async def test_connect_initialization_failure_retries(monkeypatch, caplog):
+    caplog.set_level("INFO", logger="src.core.database.postgresql_client")
+
+    pools = []
+
+    async def fake_create_pool(*_args, **_kwargs):
+        pool = _InitFailurePool()
+        pools.append(pool)
+        return pool
+
+    init_calls = 0
+
+    async def fake_initialize(self):
+        nonlocal init_calls
+        init_calls += 1
+        if init_calls == 1:
+            raise RuntimeError("migration failure")
+
+    delays = []
+
+    async def fake_sleep(seconds):
+        delays.append(seconds)
+
+    monkeypatch.setattr(
+        postgresql_module.asyncpg,
+        "create_pool",
+        fake_create_pool,
+    )
+    monkeypatch.setattr(
+        PostgreSQLClient,
+        "_initialize_tables",
+        fake_initialize,
+    )
+    monkeypatch.setattr(postgresql_module.asyncio, "sleep", fake_sleep)
+
+    client = PostgreSQLClient()
+    client.config.connection_max_retries = 3
+    client.config.connection_retry_backoff_seconds = 0.2
+
+    await client.connect()
+
+    assert len(pools) == 2
+    assert pools[0].closed is True
+    assert pools[1].closed is False
+    assert client.pool is pools[1]
+    assert delays == [0.2]
+    assert any(
+        "Database connection attempt 1/3 failed" in record.message
+        for record in caplog.records
+    )
+    assert any(
+        "Connected to PostgreSQL database" in record.message
+        for record in caplog.records
+    )
+
+
+@pytest.mark.anyio
+async def test_connect_initialization_failure_exhausts(monkeypatch, caplog):
+    caplog.set_level("ERROR", logger="src.core.database.postgresql_client")
+
+    pools = []
+
+    async def fake_create_pool(*_args, **_kwargs):
+        pool = _InitFailurePool()
+        pools.append(pool)
+        return pool
+
+    async def fake_initialize(self):
+        raise RuntimeError("schema init failed")
+
+    async def fake_sleep(_seconds):
+        return None
+
+    monkeypatch.setattr(
+        postgresql_module.asyncpg,
+        "create_pool",
+        fake_create_pool,
+    )
+    monkeypatch.setattr(
+        PostgreSQLClient,
+        "_initialize_tables",
+        fake_initialize,
+    )
+    monkeypatch.setattr(postgresql_module.asyncio, "sleep", fake_sleep)
+
+    client = PostgreSQLClient()
+    client.config.connection_max_retries = 2
+
+    with pytest.raises(RuntimeError, match="schema init failed"):
+        await client.connect()
+
+    assert len(pools) == 2
+    assert all(pool.closed for pool in pools)
+    assert client.pool is None
+    assert any(
+        "Failed to connect to database after 2 attempts" in record.message
+        for record in caplog.records
+    )
