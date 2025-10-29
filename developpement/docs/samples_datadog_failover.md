@@ -4,17 +4,17 @@ The following excerpts were generated while running the new failover-oriented te
 
 ## 1. Missing API key at startup
 
-```
+```text
 ERROR src.core.monitoring.datadog_client Datadog failover - Datadog SDK unavailable; monitoring operating in degraded mode
 ERROR src.core.monitoring.datadog_client Datadog failover - API key missing; Datadog integrations disabled
 ```
 
-- Scenario: `DatadogClient` instantiated with an empty API key. 
+- Scenario: `DatadogClient` instantiated with an empty API key.
 - Outcome: Client switches to failover mode, leaving event and metric transports disabled while surfacing the diagnostic in logs.
 
 ## 2. StatsD timeout during metric recording
 
-```
+```text
 ERROR src.core.monitoring.datadog_client Datadog failover - Failed to record metric: statsd timeout
 ```
 
@@ -23,7 +23,7 @@ ERROR src.core.monitoring.datadog_client Datadog failover - Failed to record met
 
 ## 3. Event publishing failure with retries
 
-```
+```text
 ERROR src.core.monitoring.datadog_client Datadog failover - Failed to log event to Datadog: datadog timeout
 ERROR src.core.monitoring.datadog_client Datadog failover - Failed to log event to Datadog: datadog timeout
 ```
@@ -33,7 +33,7 @@ ERROR src.core.monitoring.datadog_client Datadog failover - Failed to log event 
 
 ## 4. Cascaded monitoring degradation
 
-```
+```text
 WARNING src.core.monitoring.datadog_client Datadog failover - Events API unavailable; event buffered locally
 WARNING src.core.monitoring.datadog_client Datadog failover - StatsD client unavailable; metric dropped
 ```
@@ -45,4 +45,5 @@ WARNING src.core.monitoring.datadog_client Datadog failover - StatsD client unav
 
 - Successful metric and event dispatch traces for observability baselines.
 - Retry backoff metadata once asynchronous transport retries are implemented.
+
 ```}
