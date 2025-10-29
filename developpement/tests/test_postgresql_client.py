@@ -7,6 +7,7 @@ from unittest import mock
 
 import pytest
 
+from src.core.database import postgresql_client as postgresql_module
 from src.core.database.postgresql_client import PostgreSQLClient
 
 
@@ -90,7 +91,12 @@ class _DummyAcquire:
     async def __aenter__(self):
         return self._conn
 
-    async def __aexit__(self, exc_type, exc, tb):  # pragma: no cover - passthrough
+    async def __aexit__(
+        self,
+        exc_type,
+        exc,
+        tb,
+    ):  # pragma: no cover - passthrough
         return False
 
 
@@ -309,3 +315,138 @@ def test_get_compliance_report_handles_zero_activity():
         "start": "2025-01-01",
         "end": "2025-01-31",
     }
+
+
+def test_get_compliance_report_handles_mixed_activity():
+    client = PostgreSQLClient()
+
+    class MixedConnection:
+        async def fetchrow(self, query: str, *_args):
+            if "analysis_results" in query:
+                return DummyRecord(
+                    total_analyses=8,
+                    ai_predictions=5,
+                    human_predictions=3,
+                    avg_confidence=0.8125,
+                    avg_processing_time=143.2,
+                )
+            return DummyRecord(
+                total_events=6,
+                compliant_events=4,
+                degraded_events=2,
+            )
+
+    client.pool = _DummyPool(MixedConnection())
+
+    report = asyncio.run(
+        client.get_compliance_report("2025-02-01", "2025-02-28")
+    )
+
+    assert report["analysis"]["total"] == 8
+    assert report["analysis"]["ai_predictions"] == 5
+    assert report["analysis"]["average_confidence"] == pytest.approx(0.8125)
+    assert report["analysis"]["average_processing_time_ms"] == pytest.approx(143.2)
+    assert report["audit"]["compliance_rate"] == pytest.approx(66.666, rel=1e-3)
+    assert report["audit"]["degraded_events"] == 2
+
+
+def test_get_compliance_report_logs_and_returns_error(caplog):
+    client = PostgreSQLClient()
+    caplog.set_level("ERROR", logger="src.core.database.postgresql_client")
+
+    class FailingConnection:
+        async def fetchrow(self, *args, **kwargs):
+            raise RuntimeError("compliance query failed")
+
+    client.pool = _DummyPool(FailingConnection())
+
+    report = asyncio.run(
+        client.get_compliance_report("2025-03-01", "2025-03-31")
+    )
+
+    assert report["error"] == "compliance query failed"
+    assert any(
+        "Error generating compliance report" in record.message
+        for record in caplog.records
+    )
+
+
+@pytest.mark.anyio
+async def test_connect_retries_then_succeeds(monkeypatch, caplog):
+    caplog.set_level("WARNING", logger="src.core.database.postgresql_client")
+
+    attempt_outcomes = []
+    fake_pool = _DummyPool(_TransactionalConnection())
+
+    async def fake_create_pool(*_args, **_kwargs):
+        if attempt_outcomes.count("fail") < 2:
+            attempt_outcomes.append("fail")
+            raise RuntimeError("connection refused")
+        attempt_outcomes.append("success")
+        return fake_pool
+
+    delays = []
+
+    async def fake_sleep(seconds):
+        delays.append(seconds)
+
+    monkeypatch.setattr(
+        postgresql_module.asyncpg,
+        "create_pool",
+        fake_create_pool,
+    )
+    monkeypatch.setattr(postgresql_module.asyncio, "sleep", fake_sleep)
+
+    client = PostgreSQLClient()
+    client.config.connection_max_retries = 4
+    client.config.connection_retry_backoff_seconds = 0.1
+
+    await client.connect()
+
+    assert attempt_outcomes == ["fail", "fail", "success"]
+    assert delays == [0.1, 0.2]
+    assert client.pool is fake_pool
+    assert any(
+        "Database connection attempt 1/4 failed" in record.message
+        for record in caplog.records
+    )
+    assert any(
+        "Connected to PostgreSQL database" in record.message
+        for record in caplog.records
+    )
+
+
+@pytest.mark.anyio
+async def test_connect_retries_exhaustion_raises(monkeypatch, caplog):
+    caplog.set_level("ERROR", logger="src.core.database.postgresql_client")
+
+    attempts = 0
+
+    async def fake_create_pool(*_args, **_kwargs):
+        nonlocal attempts
+        attempts += 1
+        raise RuntimeError("service unavailable")
+
+    async def fake_sleep(_seconds):
+        return None
+
+    monkeypatch.setattr(
+        postgresql_module.asyncpg,
+        "create_pool",
+        fake_create_pool,
+    )
+    monkeypatch.setattr(postgresql_module.asyncio, "sleep", fake_sleep)
+
+    client = PostgreSQLClient()
+    client.config.connection_max_retries = 2
+    client.config.connection_retry_backoff_seconds = 0.05
+
+    with pytest.raises(RuntimeError, match="service unavailable"):
+        await client.connect()
+
+    assert attempts == 2
+    assert client.pool is None
+    assert any(
+        "Failed to connect to database after 2 attempts" in record.message
+        for record in caplog.records
+    )
