@@ -1,10 +1,10 @@
-# Coverage Snapshot – 2025-10-28
+# Coverage Snapshot - 2025-10-28
 
 Command: `PYTHONPATH=. pytest --cov=src --cov-report=term-missing`
 
 | Module | Stmts | Miss | Cover | Key Missing Ranges |
 | --- | ---: | ---: | ---: | --- |
-| src/__init__.py | 9 | 0 | 100% | – |
+| src/__init__.py | 9 | 0 | 100% | - |
 | src/api/main.py | 125 | 28 | 78% | 35-41, 97, 109, 166-177, 212-305, 322-363 |
 | src/config/settings.py | 53 | 12 | 77% | 71-92, 114-127, 146, 161 |
 | src/core/audio/processor.py | 174 | 58 | 67% | 28-30, 56, 104-191, 207-340 |
@@ -13,7 +13,7 @@ Command: `PYTHONPATH=. pytest --cov=src --cov-report=term-missing`
 | src/core/ml/predictor.py | 179 | 72 | 60% | 30-36, 116-458 |
 | src/core/monitoring/datadog_client.py | 109 | 63 | 42% | 30-31, 66-290 |
 | src/core/security/tenebris.py | 91 | 52 | 43% | 75-255 |
-| **TOTAL** | **1082** | **436** | **60%** | – |
+| __TOTAL__ | __1082__ | __436__ | __60%__ | - |
 
 ## Under-tested modules (<50% coverage)
 
