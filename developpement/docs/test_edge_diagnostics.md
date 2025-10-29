@@ -10,14 +10,14 @@
 
 ## Diagnostics that still lack coverage
 
-- DatadogClient still lacks multi-region retry backoff visibility and success metrics for long-running batch telemetry.
-- E2B sandbox manager does not yet simulate hard health-check failures or auto-scaling shrink events beyond warning logs.
-- PostgreSQL connection bootstrap failures (`Failed to connect to database`) and compliance report degradation logs are not simulated, so observability for startup issues and SLA drops is uncertain.
-- Tenebris lacks regression tests for key rotation latency and manual override flows.
+- DatadogClient still lacks multi-region retry backoff visibility and success metrics for long-running batch telemetry. *(reportée)*
+- E2B sandbox manager does not yet simulate hard health-check failures or auto-scaling shrink events beyond warning logs. *(à planifier)*
+- PostgreSQL connection bootstrap failures (`Failed to connect to database`) and compliance report degradation logs are not simulated, so observability for startup issues and SLA drops is uncertain. *(à planifier)*
+- Tenebris lacks regression tests for key rotation latency and manual override flows. *(à planifier)*
 
 ## Follow-up actions
 
-1. Capture Datadog retry scheduling metadata and long-running telemetry batching once implemented.
-2. Simulate E2B sandbox hard failures and scale-in decisions to validate automatic destruction and recovery paths.
-3. Create PostgreSQLClient connection failure tests using a fake pool factory to confirm the critical `Failed to connect` log is raised and properly escalated.
-4. Add Tenebris key rotation and override scenario coverage to assure security fallbacks stay observable.
+1. Capture Datadog retry scheduling metadata and long-running telemetry batching once implemented. *(reportée)*
+2. Simulate E2B sandbox hard failures and scale-in decisions to validate automatic destruction and recovery paths. *(à planifier)*
+3. Create PostgreSQLClient connection failure tests using a fake pool factory to confirm the critical `Failed to connect` log is raised and properly escalated. *(à planifier)*
+4. Add Tenebris key rotation and override scenario coverage to assure security fallbacks stay observable. *(à planifier)*
