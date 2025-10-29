@@ -11,13 +11,13 @@ Command: `PYTHONPATH=. pytest --cov=src --cov-report=term-missing`
 | src/core/database/postgresql_client.py | 98 | 35 | 64% | 60-133, 218-253, 310, 334-364 |
 | src/core/e2b/sandbox_manager.py | 244 | 116 | 52% | 75-134, 246-533 |
 | src/core/ml/predictor.py | 179 | 72 | 60% | 30-36, 116-458 |
-| src/core/monitoring/datadog_client.py | 109 | 63 | 42% | 30-31, 66-290 |
+| src/core/monitoring/datadog_client.py | 125 | 33 | 74% | 30-31, 105-117, 158, 188, 222, 230-236, 281, 289, 315-328, 350-424, 433 |
 | src/core/security/tenebris.py | 91 | 52 | 43% | 75-255 |
-| __TOTAL__ | __1082__ | __436__ | __60%__ | - |
+| __TOTAL__ | __1098__ | __406__ | __63%__ | - |
 
 ## Under-tested modules (<50% coverage)
 
-- `src/core/monitoring/datadog_client.py` - 42%: metric/event dispatch paths (success, retries, API key failure) remain unverified.
+- `src/core/monitoring/datadog_client.py` - 74%: failover paths covered; success-path dispatch and retry telemetry still missing.
 - `src/core/security/tenebris.py` - 43%: cryptographic policy enforcement and fallback handling lack regression coverage.
 
 ## Immediate focus
