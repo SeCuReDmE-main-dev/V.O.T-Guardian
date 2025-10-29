@@ -7,7 +7,11 @@ import pytest
 from src.core.e2b import sandbox_manager as sandbox_module
 from src.core.e2b.sandbox_manager import E2BSandboxManager, SandboxConfig
 
-pytestmark = pytest.mark.anyio("asyncio")
+
+@pytest.fixture
+def anyio_backend():
+    """Force anyio tests to execute with the asyncio backend only."""
+    return "asyncio"
 
 
 async def test_sandbox_lifecycle_happy_path(monkeypatch, caplog):
