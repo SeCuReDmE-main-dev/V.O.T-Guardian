@@ -48,6 +48,7 @@ All entries originate from `src.core.e2b.sandbox_manager` and are captured via `
 - The async health loop continues after synthetic failures, emitting a single error per fault and resuming normal operation, which matches the desired resilience profile.
 - No surprise system interactions surfaced beyond the expected logging cadence; cancellation occurs cleanly once the scheduler raises `CancelledError`.
 - Code interpreter fallback validated that template unavailability still provisions running sandboxes without leaking credentials or bypassing logging.
+- Quota-pressure trimming reclaimed the oldest idle sandboxes first, ensuring newer or busy workloads and degraded diagnostics remain available for remediation.
 
 ## Impact on Pipeline Robustness
 
