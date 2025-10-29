@@ -70,7 +70,10 @@ class DatadogClient:
             self.api_client = None
             self.events_api = None
             self._record_failover(
-                "Datadog SDK unavailable; monitoring operating in degraded mode",
+                (
+                    "Datadog SDK unavailable; "
+                    "monitoring operating in degraded mode"
+                ),
                 level=logging.ERROR,
             )
 
@@ -219,9 +222,15 @@ class DatadogClient:
                 default_tags.extend([f'{k}:{v}' for k, v in tags.items()])
 
             # Record metric based on type
-            if 'latency' in metric_name.lower() or 'time' in metric_name.lower():
+            if (
+                'latency' in metric_name.lower()
+                or 'time' in metric_name.lower()
+            ):
                 self.statsd.histogram(metric_name, value, tags=default_tags)
-            elif 'rate' in metric_name.lower() or 'count' in metric_name.lower():
+            elif (
+                'rate' in metric_name.lower()
+                or 'count' in metric_name.lower()
+            ):
                 self.statsd.increment(metric_name, value, tags=default_tags)
             else:
                 self.statsd.gauge(metric_name, value, tags=default_tags)
@@ -289,8 +298,12 @@ class DatadogClient:
                 {'call_id': call_id},
             )
 
-    def record_tenebris_metrics(self, call_id: str, destruction_time_ms: float,
-                              compliance_status: str):
+    def record_tenebris_metrics(
+        self,
+        call_id: str,
+        destruction_time_ms: float,
+        compliance_status: str,
+    ):
         """
         Record metrics for Tenebris protocol execution.
 
@@ -299,16 +312,32 @@ class DatadogClient:
             destruction_time_ms: Time taken for data destruction
             compliance_status: COMPLIANT or DEGRADED
         """
-        self.record_metric('vot.tenebris.destruction_time_ms', destruction_time_ms,
-                          {'call_id': call_id, 'status': compliance_status})
+        self.record_metric(
+            'vot.tenebris.destruction_time_ms',
+            destruction_time_ms,
+            {'call_id': call_id, 'status': compliance_status},
+        )
 
         if compliance_status == 'COMPLIANT':
-            self.record_metric('vot.tenebris.compliant', 1, {'call_id': call_id})
+            self.record_metric(
+                'vot.tenebris.compliant',
+                1,
+                {'call_id': call_id},
+            )
         else:
-            self.record_metric('vot.tenebris.violation', 1, {'call_id': call_id})
+            self.record_metric(
+                'vot.tenebris.violation',
+                1,
+                {'call_id': call_id},
+            )
 
-    def record_audio_quality_metrics(self, call_id: str, snr_db: float,
-                                   thd_percent: float, clipping_ratio: float):
+    def record_audio_quality_metrics(
+        self,
+        call_id: str,
+        snr_db: float,
+        thd_percent: float,
+        clipping_ratio: float,
+    ):
         """
         Record audio quality metrics.
 
@@ -319,15 +348,32 @@ class DatadogClient:
             clipping_ratio: Audio clipping ratio
         """
         self.record_metric('vot.audio.snr_db', snr_db, {'call_id': call_id})
-        self.record_metric('vot.audio.thd_percent', thd_percent, {'call_id': call_id})
-        self.record_metric('vot.audio.clipping_ratio', clipping_ratio, {'call_id': call_id})
+        self.record_metric(
+            'vot.audio.thd_percent',
+            thd_percent,
+            {'call_id': call_id},
+        )
+        self.record_metric(
+            'vot.audio.clipping_ratio',
+            clipping_ratio,
+            {'call_id': call_id},
+        )
 
         # Alert on poor quality
         if snr_db < 15:
-            self.logger.warning(f"Poor audio quality detected for call {call_id}: SNR {snr_db} dB")
+            self.logger.warning(
+                "Poor audio quality detected for call %s: SNR %s dB",
+                call_id,
+                snr_db,
+            )
 
-    def record_ml_model_metrics(self, model_name: str, prediction_time_ms: float,
-                              confidence: float, drift_score: Optional[float] = None):
+    def record_ml_model_metrics(
+        self,
+        model_name: str,
+        prediction_time_ms: float,
+        confidence: float,
+        drift_score: Optional[float] = None,
+    ):
         """
         Record ML model performance metrics.
 
@@ -337,12 +383,23 @@ class DatadogClient:
             confidence: Prediction confidence
             drift_score: Model drift score (if available)
         """
-        self.record_metric('vot.ml.inference_time_ms', prediction_time_ms,
-                          {'model': model_name})
-        self.record_metric('vot.ml.confidence', confidence, {'model': model_name})
+        self.record_metric(
+            'vot.ml.inference_time_ms',
+            prediction_time_ms,
+            {'model': model_name},
+        )
+        self.record_metric(
+            'vot.ml.confidence',
+            confidence,
+            {'model': model_name},
+        )
 
         if drift_score is not None:
-            self.record_metric('vot.ml.drift_score', drift_score, {'model': model_name})
+            self.record_metric(
+                'vot.ml.drift_score',
+                drift_score,
+                {'model': model_name},
+            )
 
     def get_service_status(self) -> Dict[str, Any]:
         """Get overall service status from Datadog."""
