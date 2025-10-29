@@ -33,6 +33,8 @@
 - Sandbox manager suite rebuilt to exercise recovery success, retry exhaustion, quota errors, degraded health, pool exhaustion logging, quota-aware trimming, health loop drift cleanup, and heterogeneous template pruning.
 - Datadog metric/event retry tests now assert both warning and info diagnostics, validating the success-path logging contract.
 - Full suite run confirmed pipeline, persistence, and database rollback flows remain green after integrating the sandbox regression scenarios alongside compliance, connection retries, and initialization failure handling.
+- Quota-aware downsizing paths now verify hot workloads remain online while idle sandboxes are reclaimed under pressure.
+- PostgreSQL connection lifecycle tests ensure initialization failures close pools and retry before succeeding or surfacing fatal diagnostics.
 
 ## Remaining Low-Coverage Focus
 
