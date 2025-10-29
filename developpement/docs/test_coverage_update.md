@@ -1,27 +1,34 @@
 # Test Coverage Update (2025-10-28)
 
-- Commands executed:
-  - `PYTHONPATH=. pytest --maxfail=5 --disable-warnings`
-  - `PYTHONPATH=. pytest --cov=src --cov-report=term-missing`
-- Overall coverage: **63%** (406 lines missing out of 1098)
-- New targeted tests: `tests/test_datadog_client.py::*` failover suite, `tests/test_e2b_sandbox_manager.py::test_sandbox_lifecycle_happy_path`, and `tests/test_postgresql_client.py::test_get_compliance_report_handles_zero_activity`
+## Latest Targeted Regression
 
-## Newly Covered Paths
+- `python -m pytest tests/test_tenebris.py tests/test_e2b_sandbox_manager.py tests/test_datadog_client.py`
+- Result: 15 tests passed (Tenebris 5, sandbox manager 4, Datadog telemetry 6) validating cleanup changes against monitoring and sandbox integrations.
+- Focus: ensure Tenebris metadata purges do not regress Datadog success-path telemetry or sandbox lifecycle flows.
 
-- `src/core/audio/processor.AudioProcessor.process_audio_data` happy-path computation across feature extractors.
-- Error fallback branch for `AudioProcessor.process_audio_data` ensuring default metrics are returned when decoding fails.
-- `tests/test_setup.py` now uses assertions/skip logic, eliminating legacy return-value warnings.
+## Incremental Coverage Gains
+
+- Tenebris cleanup path now executes with and without encryption, covering key revocation, memory scrubbing, and compliance report reporting.
+- Datadog client success-path telemetry remains stable under recorder stubs; targeted rerun confirmed no regressions post-cleanup.
+- E2B sandbox manager degradation/exhaustion scenarios rerun to confirm compatibility with the Tenebris session lifecycle adjustments.
 
 ## Remaining Low-Coverage Modules
 
-- `src/core/database/postgresql_client.py` (64%): deeper persistence retries and compliance report degradations remain open.
-- `src/core/e2b/sandbox_manager.py` (52%): health-check degradation and scaling heuristics still lack coverage.
-- `src/core/ml/predictor.py` (60%): model loading edge cases, GPU/mixed precision paths, and drift detection remain untested.
-- `src/core/monitoring/datadog_client.py` (74%): success-path telemetry and retry scheduling still need validation.
-- `src/core/security/tenebris.py` (43%): session validation and audit hooks are not exercised.
+- `src/core/database/postgresql_client.py`: deeper persistence retries and compliance report degradations remain open.
+- `src/core/e2b/sandbox_manager.py`: scaling heuristics and long-lived pool recoveries still lack coverage beyond targeted assertions.
+- `src/core/ml/predictor.py`: GPU and drift detection paths require dedicated fixtures.
+- `src/core/security/tenebris.py`: violation escalation and audit failure handling still need dedicated coverage despite the cleanup improvements.
 
-## Immediate Plan
+## Historical Baseline
 
-1. Harden Datadog success-path telemetry coverage while capturing retry diagnostics.
-2. Expand sandbox lifecycle tests to exercise health-check downgrades and scale-in operations.
-3. Extend PostgreSQL persistence tests to cover connection bootstrap failures and compliance report degradations.
+- Previous commands:
+  - `PYTHONPATH=. pytest --maxfail=5 --disable-warnings`
+  - `PYTHONPATH=. pytest --cov=src --cov-report=term-missing`
+- Baseline coverage snapshot: 63% (406 lines uncovered of 1098).
+- Earlier targets included Datadog failover telemetry, sandbox lifecycle happy path, and PostgreSQL compliance degradation handling.
+
+## Next Steps
+
+1. Exercise Tenebris violation handling under Datadog outage to capture escalation branches.
+2. Expand sandbox manager tests for scale-in heuristics and timer-driven health refresh.
+3. Refresh a full coverage run once Tenebris violation paths land to quantify the uplift.
