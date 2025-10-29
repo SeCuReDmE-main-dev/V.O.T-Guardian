@@ -479,3 +479,162 @@ async def test_health_check_loop_cycles_and_logs(monkeypatch, caplog):
         "Health check error: synthetic health failure" in record.message
         for record in caplog.records
     )
+
+
+@pytest.mark.anyio
+async def test_create_sandbox_uses_code_interpreter_when_generic_unavailable(
+    monkeypatch,
+    caplog,
+):
+    caplog.set_level(logging.INFO, logger="src.core.e2b.sandbox_manager")
+
+    created_kwargs = []
+
+    class CodeSandbox:
+        counter = 0
+
+        @classmethod
+        def create(cls, **kwargs):
+            cls.counter += 1
+            created_kwargs.append(kwargs)
+
+            def kill():
+                return None
+
+            return types.SimpleNamespace(
+                id=f"ci-{cls.counter}",
+                kill=kill,
+            )
+
+    monkeypatch.setattr(sandbox_module, "GenericSandbox", None)
+    monkeypatch.setattr(sandbox_module, "E2B_GENERIC_AVAILABLE", False)
+    monkeypatch.setattr(sandbox_module, "CodeInterpreterSandbox", CodeSandbox)
+    monkeypatch.setattr(sandbox_module, "E2B_CI_AVAILABLE", True)
+
+    manager = E2BSandboxManager(
+        config=SandboxConfig(
+            api_key="ci-key",
+            min_pool_size=0,
+            max_pool_size=1,
+            sandbox_timeout=10,
+            health_check_interval=1,
+            max_concurrent_per_sandbox=1,
+        )
+    )
+
+    instance = await manager._create_sandbox()
+
+    assert instance.id == "ci-1"
+    assert created_kwargs == [{
+        "allow_internet_access": False,
+        "timeout": 10,
+        "api_key": "ci-key",
+    }]
+    assert any(
+        "Created new E2B sandbox" in record.message
+        for record in caplog.records
+    )
+
+
+@pytest.mark.anyio
+async def test_scale_pool_trims_heterogeneous_templates(caplog):
+    caplog.set_level(logging.INFO, logger="src.core.e2b.sandbox_manager")
+
+    destroyed = []
+
+    def make_sandbox(name: str):
+        def kill():
+            destroyed.append(name)
+
+        return types.SimpleNamespace(kill=kill)
+
+    config = SandboxConfig(
+        api_key="fake",
+        min_pool_size=2,
+        max_pool_size=10,
+        sandbox_timeout=5,
+        health_check_interval=1,
+        max_concurrent_per_sandbox=1,
+    )
+
+    manager = E2BSandboxManager(config=config)
+
+    manager._pool = {
+        "audio-1": SandboxInstance(
+            id="audio-1",
+            sandbox=make_sandbox("audio-1"),
+            created_at=0.0,
+            last_used=0.0,
+            active_connections=0,
+            status='healthy',
+        ),
+        "ml-1": SandboxInstance(
+            id="ml-1",
+            sandbox=make_sandbox("ml-1"),
+            created_at=0.0,
+            last_used=0.0,
+            active_connections=0,
+            status='healthy',
+        ),
+        "ci-1": SandboxInstance(
+            id="ci-1",
+            sandbox=make_sandbox("ci-1"),
+            created_at=0.0,
+            last_used=0.0,
+            active_connections=1,
+            status='healthy',
+        ),
+        "audio-2": SandboxInstance(
+            id="audio-2",
+            sandbox=make_sandbox("audio-2"),
+            created_at=0.0,
+            last_used=0.0,
+            active_connections=0,
+            status='degraded',
+        ),
+        "ml-2": SandboxInstance(
+            id="ml-2",
+            sandbox=make_sandbox("ml-2"),
+            created_at=0.0,
+            last_used=0.0,
+            active_connections=0,
+            status='healthy',
+        ),
+        "ci-2": SandboxInstance(
+            id="ci-2",
+            sandbox=make_sandbox("ci-2"),
+            created_at=0.0,
+            last_used=0.0,
+            active_connections=0,
+            status='healthy',
+        ),
+        "audio-3": SandboxInstance(
+            id="audio-3",
+            sandbox=make_sandbox("audio-3"),
+            created_at=0.0,
+            last_used=0.0,
+            active_connections=0,
+            status='healthy',
+        ),
+        "ci-active": SandboxInstance(
+            id="ci-active",
+            sandbox=make_sandbox("ci-active"),
+            created_at=0.0,
+            last_used=0.0,
+            active_connections=2,
+            status='healthy',
+        ),
+    }
+
+    await manager._scale_pool(healthy_count=8)
+
+    assert destroyed == ["audio-1", "ml-1"]
+    assert "audio-1" not in manager._pool
+    assert "ml-1" not in manager._pool
+    assert "ci-1" in manager._pool
+    assert "ci-active" in manager._pool
+    assert manager._stats["sandboxes_destroyed"] == 2
+    assert any(
+        "Destroyed E2B sandbox" in record.message
+        for record in caplog.records
+    )
