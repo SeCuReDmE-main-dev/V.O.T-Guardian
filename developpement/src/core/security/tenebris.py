@@ -79,10 +79,16 @@ class TenebrisProtocol:
             await self._initialize_session(session_id, call_id)
 
             # Generate encryption key for this session
-            session_key = Fernet.generate_key() if self.config.encryption_enabled else None
+            session_key = (
+                Fernet.generate_key() if self.config.encryption_enabled else None
+            )
 
             # Create isolated sandbox
-            sandbox_id = await self._create_isolated_sandbox(call_id, session_key)
+            sandbox_id = await self._create_isolated_sandbox(
+                session_id,
+                call_id,
+                session_key,
+            )
 
             # Log protocol start
             await self._log_audit_event("TENEBRIS_START", {
