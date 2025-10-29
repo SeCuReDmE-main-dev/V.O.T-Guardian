@@ -78,7 +78,7 @@ def test_metric_failover_logs_without_raising(monkeypatch, caplog):
         for record in caplog.records
         if "Datadog failover" in record.message
     ]
-    assert any("metric send failed" in msg for msg in failover_messages)
+        assert any("Failed to record metric" in msg for msg in failover_messages)
     assert client._failover_active is True
 
 
@@ -129,7 +129,7 @@ async def test_log_event_network_failure_records_failover(monkeypatch, caplog):
         raising=False,
     )
 
-    async def fake_init_statsd(self):
+    def fake_init_statsd(self):
         self.statsd = None
 
     monkeypatch.setattr(DatadogClient, "_initialize_statsd", fake_init_statsd)
