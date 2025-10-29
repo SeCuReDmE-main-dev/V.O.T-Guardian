@@ -1,10 +1,10 @@
 # Test Coverage Update (2025-10-28)
 
 - Commands executed:
-  - `python -m pytest --maxfail=3 --disable-warnings`
-  - `python -m pytest --cov=src --cov-report=term-missing`
-- Overall coverage: **52%** (524 lines missing out of 1082)
-- New targeted tests: `tests/test_ml_predictor.py::test_predict_high_confidence_ai`, `tests/test_ml_predictor.py::test_predict_fallback_when_model_missing`, and `tests/test_pipeline_e2e.py::test_pipeline_e2e_persists_features`
+  - `PYTHONPATH=. pytest --maxfail=5 --disable-warnings`
+  - `PYTHONPATH=. pytest --cov=src --cov-report=term-missing`
+- Overall coverage: **63%** (406 lines missing out of 1098)
+- New targeted tests: `tests/test_datadog_client.py::*` failover suite, `tests/test_e2b_sandbox_manager.py::test_sandbox_lifecycle_happy_path`, and `tests/test_postgresql_client.py::test_get_compliance_report_handles_zero_activity`
 
 ## Newly Covered Paths
 
@@ -14,14 +14,14 @@
 
 ## Remaining Low-Coverage Modules
 
-- `src/core/database/postgresql_client.py` (43%): persistence lifecycle, retry logic, and error handling still untested.
-- `src/core/e2b/sandbox_manager.py` (25%): sandbox orchestration flows, timeout paths, and cleanup remain uncovered.
+- `src/core/database/postgresql_client.py` (64%): deeper persistence retries and compliance report degradations remain open.
+- `src/core/e2b/sandbox_manager.py` (52%): health-check degradation and scaling heuristics still lack coverage.
 - `src/core/ml/predictor.py` (60%): model loading edge cases, GPU/mixed precision paths, and drift detection remain untested.
-- `src/core/monitoring/datadog_client.py` (42%): metric batching and error telemetry code paths lack coverage.
+- `src/core/monitoring/datadog_client.py` (74%): success-path telemetry and retry scheduling still need validation.
 - `src/core/security/tenebris.py` (43%): session validation and audit hooks are not exercised.
 
 ## Immediate Plan
 
-1. Target `DatadogClient` metrics emission with stub transport to exercise success/failure branches.
-2. Add sandbox lifecycle tests in `E2BSandboxManager` to cover session creation and cleanup (mocking E2B SDK).
-3. Follow up with persistence integration tests around `PostgreSQLClient` once database fixtures are available.
+1. Harden Datadog success-path telemetry coverage while capturing retry diagnostics.
+2. Expand sandbox lifecycle tests to exercise health-check downgrades and scale-in operations.
+3. Extend PostgreSQL persistence tests to cover connection bootstrap failures and compliance report degradations.
