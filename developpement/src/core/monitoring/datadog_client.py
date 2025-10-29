@@ -58,7 +58,9 @@ class DatadogClient:
         if DATADOG_AVAILABLE:
             self.configuration = Configuration()
             self.configuration.api_key['apiKeyAuth'] = self.config.api_key
-            self.configuration.api_key['appKeyAuth'] = self.config.app_key or ""
+            self.configuration.api_key['appKeyAuth'] = (
+                self.config.app_key or ""
+            )
             self.configuration.server_variables['site'] = self.config.site
 
             self.api_client = ApiClient(self.configuration)
@@ -67,14 +69,20 @@ class DatadogClient:
             self.configuration = None
             self.api_client = None
             self.events_api = None
-            self._record_failover("Datadog SDK unavailable; monitoring operating in degraded mode", level=logging.ERROR)
+            self._record_failover(
+                "Datadog SDK unavailable; monitoring operating in degraded mode",
+                level=logging.ERROR,
+            )
 
         # Initialize statsd for metrics (if available)
         self.statsd = None
         self._initialize_statsd()
 
         if not self.config.api_key:
-            self._record_failover("API key missing; Datadog integrations disabled", level=logging.ERROR)
+            self._record_failover(
+                "API key missing; Datadog integrations disabled",
+                level=logging.ERROR,
+            )
 
     def _load_config(self) -> DatadogConfig:
         """Load configuration from environment variables."""
@@ -98,12 +106,23 @@ class DatadogClient:
             )
             self.statsd = statsd
         except ImportError:
-            self._record_failover("Datadog statsd not available; metrics disabled", level=logging.ERROR)
+            self._record_failover(
+                "Datadog statsd not available; metrics disabled",
+                level=logging.ERROR,
+            )
         except Exception as exc:
-            self._record_failover(f"Statsd initialization failed: {exc}", level=logging.ERROR)
+            self._record_failover(
+                f"Statsd initialization failed: {exc}",
+                level=logging.ERROR,
+            )
 
-    async def log_event(self, title: str, metadata: Dict[str, Any],
-                       alert_type: str = 'info', tags: Optional[list] = None):
+    async def log_event(
+        self,
+        title: str,
+        metadata: Dict[str, Any],
+        alert_type: str = 'info',
+        tags: Optional[list] = None,
+    ):
         """
         Log an event to Datadog.
 
@@ -147,10 +166,16 @@ class DatadogClient:
             if self.events_api:
                 self.events_api.create_event(event_request)
             else:
-                self._record_failover("Events API unavailable; event buffered locally", level=logging.WARNING)
+                self._record_failover(
+                    "Events API unavailable; event buffered locally",
+                    level=logging.WARNING,
+                )
 
         except Exception as e:
-            self._record_failover(f"Failed to log event to Datadog: {e}", level=logging.ERROR)
+            self._record_failover(
+                f"Failed to log event to Datadog: {e}",
+                level=logging.ERROR,
+            )
 
     def _format_metadata(self, metadata: Dict[str, Any]) -> str:
         """Format metadata for display in event text."""
@@ -162,8 +187,12 @@ class DatadogClient:
                 formatted_lines.append(f"  {key}: {value}")
         return "\n".join(formatted_lines)
 
-    def record_metric(self, metric_name: str, value: float,
-                     tags: Optional[Dict[str, str]] = None):
+    def record_metric(
+        self,
+        metric_name: str,
+        value: float,
+        tags: Optional[Dict[str, str]] = None,
+    ):
         """
         Record a custom metric.
 
@@ -173,7 +202,10 @@ class DatadogClient:
             tags: Additional tags
         """
         if not self.statsd:
-            self._record_failover("StatsD client unavailable; metric dropped", level=logging.WARNING)
+            self._record_failover(
+                "StatsD client unavailable; metric dropped",
+                level=logging.WARNING,
+            )
             return
 
         try:
@@ -195,10 +227,18 @@ class DatadogClient:
                 self.statsd.gauge(metric_name, value, tags=default_tags)
 
         except Exception as e:
-            self._record_failover(f"Failed to record metric: {e}", level=logging.ERROR)
+            self._record_failover(
+                f"Failed to record metric: {e}",
+                level=logging.ERROR,
+            )
 
-    def record_analysis_metrics(self, call_id: str, prediction: str,
-                              confidence: float, latency_ms: float):
+    def record_analysis_metrics(
+        self,
+        call_id: str,
+        prediction: str,
+        confidence: float,
+        latency_ms: float,
+    ):
         """
         Record metrics specific to voice analysis.
 
@@ -210,20 +250,44 @@ class DatadogClient:
         """
         # Record core metrics
         self.record_metric('vot.analysis.total', 1, {'call_id': call_id})
-        self.record_metric('vot.analysis.confidence', confidence, {'call_id': call_id})
-        self.record_metric('vot.analysis.latency_ms', latency_ms, {'call_id': call_id})
+        self.record_metric(
+            'vot.analysis.confidence',
+            confidence,
+            {'call_id': call_id},
+        )
+        self.record_metric(
+            'vot.analysis.latency_ms',
+            latency_ms,
+            {'call_id': call_id},
+        )
 
         # Record prediction-specific metrics
         if prediction == 'AI':
-            self.record_metric('vot.analysis.prediction.ai', 1, {'call_id': call_id})
+            self.record_metric(
+                'vot.analysis.prediction.ai',
+                1,
+                {'call_id': call_id},
+            )
         else:
-            self.record_metric('vot.analysis.prediction.human', 1, {'call_id': call_id})
+            self.record_metric(
+                'vot.analysis.prediction.human',
+                1,
+                {'call_id': call_id},
+            )
 
         # Record performance metrics
         if latency_ms < 500:
-            self.record_metric('vot.analysis.performance.compliant', 1, {'call_id': call_id})
+            self.record_metric(
+                'vot.analysis.performance.compliant',
+                1,
+                {'call_id': call_id},
+            )
         else:
-            self.record_metric('vot.analysis.performance.degraded', 1, {'call_id': call_id})
+            self.record_metric(
+                'vot.analysis.performance.degraded',
+                1,
+                {'call_id': call_id},
+            )
 
     def record_tenebris_metrics(self, call_id: str, destruction_time_ms: float,
                               compliance_status: str):
