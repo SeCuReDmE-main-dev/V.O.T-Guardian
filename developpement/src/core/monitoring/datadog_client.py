@@ -101,7 +101,7 @@ class DatadogClient:
     def _initialize_statsd(self):
         """Initialize StatsD client for metrics."""
         try:
-            from datadog import statsd
+            from datadog import statsd  # type: ignore
             statsd.configure(
                 api_key=self.config.api_key,
                 statsd_host=os.getenv('DD_AGENT_HOST', 'localhost'),
