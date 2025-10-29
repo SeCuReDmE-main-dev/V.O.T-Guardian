@@ -387,7 +387,7 @@ def test_get_compliance_report_logs_and_returns_error(caplog):
 
 @pytest.mark.anyio
 async def test_connect_retries_then_succeeds(monkeypatch, caplog):
-    caplog.set_level("WARNING", logger="src.core.database.postgresql_client")
+    caplog.set_level("INFO", logger="src.core.database.postgresql_client")
 
     attempt_outcomes = []
     fake_pool = _DummyPool(_TransactionalConnection())
