@@ -111,9 +111,13 @@ class _DummyPool:
 
     def __init__(self, conn):
         self._conn = conn
+        self.closed = False
 
     def acquire(self):
         return _DummyAcquire(self._conn)
+
+    async def close(self):
+        self.closed = True
 
 
 class _DummyTransaction:
