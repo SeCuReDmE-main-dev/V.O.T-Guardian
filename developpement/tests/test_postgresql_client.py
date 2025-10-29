@@ -743,7 +743,8 @@ async def test_connect_partial_migration_failure_rolls_back(monkeypatch, caplog)
     assert pools[0].closed is True
     assert pools[1].closed is False
     assert client.pool is pools[1]
-    assert teardown_reasons == ["init-failure"]
+    assert teardown_reasons == ["init-failure", "failure"]
+    assert pools[0].close_calls == 2
     assert any(
         "rolling back pending migrations" in record.message
         for record in caplog.records
