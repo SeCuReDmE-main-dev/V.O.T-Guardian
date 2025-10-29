@@ -475,8 +475,10 @@ class _InitFailurePool:
 
     def __init__(self):
         self.closed = False
+        self.close_calls = 0
 
     async def close(self):
+        self.close_calls += 1
         self.closed = True
 
     def acquire(self):
@@ -580,5 +582,216 @@ async def test_connect_initialization_failure_exhausts(monkeypatch, caplog):
     assert client.pool is None
     assert any(
         "Failed to connect to database after 2 attempts" in record.message
+        for record in caplog.records
+    )
+
+
+@pytest.mark.anyio
+async def test_close_pool_with_metrics_emits_observability_logs(
+    monkeypatch,
+    caplog,
+):
+    caplog.set_level("INFO", logger="src.core.database.postgresql_client")
+    client = PostgreSQLClient()
+
+    class InstrumentedPool:
+        def __init__(self):
+            self.closed = False
+            self.connection_count = 4
+
+        async def close(self):
+            await asyncio.sleep(0)
+            self.closed = True
+
+    pool = InstrumentedPool()
+
+    memory_snapshots = iter([(4096, 0), (1024, 0)])
+    perf_values = iter([10.0, 10.125])
+
+    monkeypatch.setattr(
+        postgresql_module.tracemalloc,
+        "is_tracing",
+        lambda: True,
+    )
+    monkeypatch.setattr(
+        postgresql_module.tracemalloc,
+        "get_traced_memory",
+        lambda: next(memory_snapshots),
+    )
+    monkeypatch.setattr(
+        postgresql_module.time,
+        "perf_counter",
+        lambda: next(perf_values),
+    )
+
+    await client._close_pool_with_metrics(pool, "maintenance-window")
+
+    assert pool.closed is True
+    record = next(
+        rec
+        for rec in caplog.records
+        if "PostgreSQL pool teardown (maintenance-window)" in rec.message
+    )
+    assert "duration=0.1250s" in record.message
+    assert "connections=4" in record.message
+    assert "memory_before=4096" in record.message
+    assert "memory_after=1024" in record.message
+
+
+@pytest.mark.anyio
+async def test_close_pool_with_metrics_estimates_holder_count(monkeypatch, caplog):
+    caplog.set_level("INFO", logger="src.core.database.postgresql_client")
+    client = PostgreSQLClient()
+
+    class SaturatedPool:
+        def __init__(self):
+            self._holders = [object()] * 7
+            self.closed = False
+
+        async def close(self):
+            self.closed = True
+
+    pool = SaturatedPool()
+
+    perf_values = iter([5.0, 5.032])
+    monkeypatch.setattr(
+        postgresql_module.tracemalloc,
+        "is_tracing",
+        lambda: False,
+    )
+    monkeypatch.setattr(
+        postgresql_module.time,
+        "perf_counter",
+        lambda: next(perf_values),
+    )
+
+    await client._close_pool_with_metrics(pool, "saturation-recovery")
+
+    assert pool.closed is True
+    record = next(
+        rec
+        for rec in caplog.records
+        if "PostgreSQL pool teardown (saturation-recovery)" in rec.message
+    )
+    assert "connections=7" in record.message
+    assert "memory_before=n/a" in record.message
+    assert "memory_after=n/a" in record.message
+
+
+@pytest.mark.anyio
+async def test_disconnect_invokes_teardown_metrics(monkeypatch):
+    client = PostgreSQLClient()
+    pool = _InitFailurePool()
+    client.pool = pool
+
+    original = PostgreSQLClient._close_pool_with_metrics
+    reasons = []
+
+    async def recorder(self, target_pool, reason):
+        reasons.append(reason)
+        await original(self, target_pool, reason)
+
+    monkeypatch.setattr(PostgreSQLClient, "_close_pool_with_metrics", recorder)
+
+    await client.disconnect()
+
+    assert reasons == ["disconnect"]
+    assert pool.closed is True
+    assert client.pool is None
+
+
+@pytest.mark.anyio
+async def test_connect_partial_migration_failure_rolls_back(monkeypatch, caplog):
+    caplog.set_level("WARNING", logger="src.core.database.postgresql_client")
+
+    pools = []
+    init_calls = 0
+
+    async def fake_create_pool(*_args, **_kwargs):
+        pool = _InitFailurePool()
+        pools.append(pool)
+        return pool
+
+    async def fake_initialize(self):
+        nonlocal init_calls
+        init_calls += 1
+        if init_calls == 1:
+            raise RuntimeError("migration step 3/5 crashed")
+
+    original = PostgreSQLClient._close_pool_with_metrics
+    teardown_reasons = []
+
+    async def recorder(self, pool, reason):
+        teardown_reasons.append(reason)
+        await original(self, pool, reason)
+
+    monkeypatch.setattr(
+        postgresql_module.asyncpg,
+        "create_pool",
+        fake_create_pool,
+    )
+    monkeypatch.setattr(PostgreSQLClient, "_initialize_tables", fake_initialize)
+    monkeypatch.setattr(PostgreSQLClient, "_close_pool_with_metrics", recorder)
+
+    client = PostgreSQLClient()
+    client.config.connection_max_retries = 3
+    client.config.connection_retry_backoff_seconds = 0
+
+    await client.connect()
+
+    assert len(pools) == 2
+    assert pools[0].closed is True
+    assert pools[1].closed is False
+    assert client.pool is pools[1]
+    assert teardown_reasons == ["init-failure"]
+    assert any(
+        "rolling back pending migrations" in record.message
+        for record in caplog.records
+    )
+
+
+@pytest.mark.anyio
+async def test_connect_pool_exhaustion_recovers(monkeypatch, caplog):
+    caplog.set_level("INFO", logger="src.core.database.postgresql_client")
+
+    exhaustion_pool = _InitFailurePool()
+    healthy_pool = _InitFailurePool()
+    attempts = []
+
+    async def fake_create_pool(*_args, **_kwargs):
+        attempt = len(attempts)
+        attempts.append(attempt)
+        if attempt == 0:
+            exhaustion_pool.total_connections = 20
+            raise RuntimeError("pool exhausted")
+        return healthy_pool
+
+    monkeypatch.setattr(
+        postgresql_module.asyncpg,
+        "create_pool",
+        fake_create_pool,
+    )
+
+    original = PostgreSQLClient._close_pool_with_metrics
+    teardown_reasons = []
+
+    async def recorder(self, pool, reason):
+        teardown_reasons.append((pool, reason))
+        if pool is healthy_pool:
+            await original(self, pool, reason)
+
+    monkeypatch.setattr(PostgreSQLClient, "_close_pool_with_metrics", recorder)
+
+    client = PostgreSQLClient()
+    client.config.connection_max_retries = 2
+    client.config.connection_retry_backoff_seconds = 0
+
+    await client.connect()
+
+    assert attempts == [0, 1]
+    assert client.pool is healthy_pool
+    assert teardown_reasons == []
+    assert any(
+        "Database connection attempt 1/2 failed" in record.message
         for record in caplog.records
     )
