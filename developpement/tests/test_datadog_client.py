@@ -207,7 +207,7 @@ def test_metric_retry_chain_recovers(monkeypatch, caplog):
     flaky = _FlakyStatsd(failures=2)
     _enable_datadog(monkeypatch, statsd=flaky)
 
-    caplog.set_level(logging.WARNING, logger=LOGGER)
+    caplog.set_level(logging.INFO, logger=LOGGER)
 
     client = DatadogClient(
         config=DatadogConfig(
@@ -298,7 +298,7 @@ async def test_log_event_retry_chain_recovers(monkeypatch, caplog):
         events_cls=_ConfigurableEventsApi,
     )
 
-    caplog.set_level(logging.WARNING, logger=LOGGER)
+    caplog.set_level(logging.INFO, logger=LOGGER)
 
     client = DatadogClient(
         config=DatadogConfig(
