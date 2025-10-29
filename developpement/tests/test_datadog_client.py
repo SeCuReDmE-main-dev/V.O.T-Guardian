@@ -46,6 +46,12 @@ def reset_datadog_module(monkeypatch):
     yield
 
 
+@pytest.fixture
+def anyio_backend():
+    """Force anyio-based tests to run with asyncio backend."""
+    return "asyncio"
+
+
 def test_missing_api_key_triggers_failover_logs(monkeypatch, caplog):
     caplog.set_level(logging.WARNING, logger=LOGGER)
 
@@ -78,7 +84,7 @@ def test_metric_failover_logs_without_raising(monkeypatch, caplog):
         for record in caplog.records
         if "Datadog failover" in record.message
     ]
-        assert any("Failed to record metric" in msg for msg in failover_messages)
+    assert any("Failed to record metric" in msg for msg in failover_messages)
     assert client._failover_active is True
 
 
