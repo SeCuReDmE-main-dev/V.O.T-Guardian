@@ -247,6 +247,11 @@ class E2BSandboxManager:
                 return await self._create_sandbox()
 
             # Pool exhausted
+            self.logger.error(
+                "Sandbox pool exhausted: %s active of max %s",
+                len(self._pool),
+                self.config.max_pool_size,
+            )
             raise Exception("Sandbox pool exhausted")
 
     async def _release_sandbox(self, sandbox_id: str):
@@ -352,6 +357,11 @@ class E2BSandboxManager:
                         healthy_sandboxes.append(instance)
                     else:
                         instance.status = 'degraded'
+                        self.logger.warning(
+                            "Sandbox %s response degraded (%.2fs)",
+                            sandbox_id,
+                            response_time,
+                        )
 
                 except Exception as e:
                     self.logger.warning(
