@@ -22,6 +22,6 @@ Command: `PYTHONPATH=. pytest --cov=src --cov-report=term-missing`
 
 ## Immediate focus
 
-1. Land unit tests for Datadog metric batching and error logging (blocked by pending client stubs).
+1. Add Datadog success-path telemetry tests to complement new failover coverage.
 2. Stub Tenebris policy loader to exercise compliance fallbacks and exception recovery paths.
 3. Extend sandbox manager scenarios to cover scaling/health-check branches and promote coverage past 70%.
