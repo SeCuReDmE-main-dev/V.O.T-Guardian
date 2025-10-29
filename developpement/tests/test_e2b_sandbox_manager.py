@@ -638,3 +638,195 @@ async def test_scale_pool_trims_heterogeneous_templates(caplog):
         "Destroyed E2B sandbox" in record.message
         for record in caplog.records
     )
+
+
+@pytest.mark.anyio
+async def test_scale_pool_quota_pressure_preserves_hot_workloads(caplog):
+    caplog.set_level(logging.INFO, logger="src.core.e2b.sandbox_manager")
+
+    destroyed = []
+
+    def tracked_sandbox(name: str):
+        def kill():
+            destroyed.append(name)
+
+        return types.SimpleNamespace(kill=kill)
+
+    config = SandboxConfig(
+        api_key="quota-key",
+        min_pool_size=2,
+        max_pool_size=12,
+        sandbox_timeout=5,
+        health_check_interval=1,
+        max_concurrent_per_sandbox=1,
+    )
+
+    manager = E2BSandboxManager(config=config)
+
+    manager._pool = {
+        "audio-old": SandboxInstance(
+            id="audio-old",
+            sandbox=tracked_sandbox("audio-old"),
+            created_at=100.0,
+            last_used=10.0,
+            active_connections=0,
+            status='healthy',
+        ),
+        "ml-old": SandboxInstance(
+            id="ml-old",
+            sandbox=tracked_sandbox("ml-old"),
+            created_at=101.0,
+            last_used=11.0,
+            active_connections=0,
+            status='healthy',
+        ),
+        "ci-busy": SandboxInstance(
+            id="ci-busy",
+            sandbox=tracked_sandbox("ci-busy"),
+            created_at=102.0,
+            last_used=50.0,
+            active_connections=1,
+            status='healthy',
+        ),
+        "audio-new": SandboxInstance(
+            id="audio-new",
+            sandbox=tracked_sandbox("audio-new"),
+            created_at=103.0,
+            last_used=80.0,
+            active_connections=0,
+            status='healthy',
+        ),
+        "ml-degraded": SandboxInstance(
+            id="ml-degraded",
+            sandbox=tracked_sandbox("ml-degraded"),
+            created_at=104.0,
+            last_used=20.0,
+            active_connections=0,
+            status='degraded',
+        ),
+        "ci-idle": SandboxInstance(
+            id="ci-idle",
+            sandbox=tracked_sandbox("ci-idle"),
+            created_at=105.0,
+            last_used=70.0,
+            active_connections=0,
+            status='healthy',
+        ),
+        "audio-busy": SandboxInstance(
+            id="audio-busy",
+            sandbox=tracked_sandbox("audio-busy"),
+            created_at=106.0,
+            last_used=90.0,
+            active_connections=2,
+            status='healthy',
+        ),
+        "ci-ancient": SandboxInstance(
+            id="ci-ancient",
+            sandbox=tracked_sandbox("ci-ancient"),
+            created_at=50.0,
+            last_used=5.0,
+            active_connections=0,
+            status='healthy',
+        ),
+    }
+
+    await manager._scale_pool(healthy_count=8)
+
+    assert destroyed == ["audio-old", "ml-old"]
+    assert set(manager._pool.keys()) == {
+        "ci-busy",
+        "audio-new",
+        "ml-degraded",
+        "ci-idle",
+        "audio-busy",
+        "ci-ancient",
+    }
+
+    stats = manager.get_pool_stats()
+    assert stats["stats"]["sandboxes_destroyed"] >= 2
+    assert any(
+        "Destroyed E2B sandbox" in record.message
+        for record in caplog.records
+    )
+
+
+@pytest.mark.anyio
+async def test_health_check_loop_long_term_drift_cleanup(monkeypatch, caplog):
+    caplog.set_level(logging.WARNING, logger="src.core.e2b.sandbox_manager")
+
+    config = SandboxConfig(
+        api_key="drift",
+        min_pool_size=0,
+        max_pool_size=3,
+        sandbox_timeout=5,
+        health_check_interval=1,
+        max_concurrent_per_sandbox=1,
+    )
+
+    manager = E2BSandboxManager(config=config)
+
+    original_destroy = manager._destroy_sandbox
+    destroyed = []
+
+    async def tracked_destroy(sandbox_id):
+        destroyed.append(sandbox_id)
+        await original_destroy(sandbox_id)
+
+    manager._destroy_sandbox = tracked_destroy  # type: ignore[assignment]
+
+    manager._pool = {
+        "sb-drift": SandboxInstance(
+            id="sb-drift",
+            sandbox=object(),
+            created_at=0.0,
+            last_used=0.0,
+            active_connections=0,
+            status='healthy',
+        )
+    }
+
+    time_sequence = iter([
+        0.0,
+        0.0,
+        0.0,
+        RuntimeError("heartbeat lost"),
+        0.0,
+    ])
+
+    def fake_time():
+        value = next(time_sequence, 0.0)
+        if isinstance(value, Exception):
+            raise value
+        return value
+
+    monkeypatch.setattr(
+        sandbox_module,
+        "time",
+        types.SimpleNamespace(time=fake_time),
+    )
+
+    real_sleep = asyncio.sleep
+    sleep_calls = 0
+
+    async def fake_sleep(_interval):
+        nonlocal sleep_calls
+        sleep_calls += 1
+        if sleep_calls >= 5:
+            raise asyncio.CancelledError()
+        await real_sleep(0)
+
+    monkeypatch.setattr(sandbox_module.asyncio, "sleep", fake_sleep)
+
+    task = asyncio.create_task(manager._health_check_loop())
+    await real_sleep(0)
+    await task
+
+    assert destroyed == ["sb-drift"]
+    stats = manager.get_pool_stats()
+    assert stats["total_sandboxes"] == 0
+    assert stats["stats"]["sandboxes_destroyed"] >= 1
+    assert any(
+        "Sandbox sb-drift health check failed" in record.message
+        for record in caplog.records
+    )
+    assert sleep_calls >= 4
