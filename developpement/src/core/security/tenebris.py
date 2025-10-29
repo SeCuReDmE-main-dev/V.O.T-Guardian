@@ -272,4 +272,4 @@ class TenebrisProtocol:
             'compliance_rate': (completed_sessions / total_sessions * 100) if total_sessions > 0 else 100,
             'max_execution_time_ms': self.config.max_execution_time_ms,
             'generated_at': time.time()
-        }
+    }
