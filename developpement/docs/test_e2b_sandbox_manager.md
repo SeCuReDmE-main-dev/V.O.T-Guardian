@@ -9,6 +9,8 @@
 - `test_sandbox_creation_quota_error`: verifies quota exceptions bubble up while emitting failure diagnostics and leaving the pool empty.
 - `test_health_check_marks_degraded_and_logs`: exercises the health check loop, marking slow responders as degraded and updating aggregate stats.
 - `test_acquire_sandbox_logs_pool_exhaustion`: confirms pool exhaustion surfaces as an exception with error-level telemetry.
+- `test_scale_pool_trims_idle_sandboxes`: validates the automatic scale-in heuristic trims idle workers and logs destruction telemetry.
+- `test_health_check_loop_cycles_and_logs`: drives the async loop through success, failure, recovery, and graceful cancellation, asserting emitted diagnostics.
 
 ## Diagnostic Log Samples
 
@@ -21,6 +23,9 @@ ERROR Sandbox creation exhausted retries (2 attempts)
 INFO  Destroyed E2B sandbox: sb-old
 WARNING Sandbox sb-slow response degraded (6.50s)
 ERROR Sandbox pool exhausted: 1 active of max 1
+INFO  Destroyed E2B sandbox: sb-1
+INFO  Destroyed E2B sandbox: sb-2
+ERROR Health check error: synthetic health failure
 ```
 
 All entries originate from `src.core.e2b.sandbox_manager` and are captured via `caplog`, ensuring future regressions surface as log mismatches.
@@ -32,9 +37,15 @@ All entries originate from `src.core.e2b.sandbox_manager` and are captured via `
 3. Multi-template and Code Interpreter fallbacks are still mocked out; incorporate availability toggles once SDK stubs are prepared.
 4. Long-lived sandboxes and file transfer helpers are not exercised; consider integration hooks once fixture assets are available.
 
+## Corner Cases & Observations
+
+- Scale-in trimming confirmed that only idle healthy sandboxes are destroyed; busy instances remain untouched, protecting in-flight work.
+- The async health loop continues after synthetic failures, emitting a single error per fault and resuming normal operation, which matches the desired resilience profile.
+- No surprise system interactions surfaced beyond the expected logging cadence; cancellation occurs cleanly once the scheduler raises `CancelledError`.
+
 ## Impact on Pipeline Robustness
 
 - The recovery, quota, and pool exhaustion paths align with the Datadog retry telemetry, ensuring consistent alerts across the monitoring stack.
 - Verified lifecycle teardown prevents leaked sandboxes, preserving resource budgets for the ML inference pipeline and Tenebris cleanup flow.
 - Degradation logging feeds into the pipeline health dashboard, enabling proactive remediation when throughput drops or latency spikes.
-- The expanded tests provide regression safety before enabling automatic scaling in CI and production rollouts.
+- The expanded tests provide regression safety before enabling automatic scaling in CI and production rollouts, and demonstrate that the health loop self-heals after intermittent faults.
