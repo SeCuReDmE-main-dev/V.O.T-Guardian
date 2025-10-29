@@ -13,6 +13,7 @@ Features:
 Author: Jean-Sébastien Beaulieu
 """
 
+import asyncio
 import json
 import logging
 import os
@@ -31,6 +32,8 @@ class DatabaseConfig:
     max_connections: int = 20
     command_timeout: int = 60
     server_settings: Dict[str, str] = None
+    connection_max_retries: int = 3
+    connection_retry_backoff_seconds: float = 0.5
 
 
 class PostgreSQLClient:
@@ -53,27 +56,60 @@ class PostgreSQLClient:
             url=os.getenv('POSTGRESQL_URL', default_url),
             min_connections=int(os.getenv('DB_MIN_CONNECTIONS', '5')),
             max_connections=int(os.getenv('DB_MAX_CONNECTIONS', '20')),
+            connection_max_retries=int(
+                os.getenv('DB_CONNECTION_MAX_RETRIES', '3')
+            ),
+            connection_retry_backoff_seconds=float(
+                os.getenv('DB_CONNECTION_BACKOFF_SECONDS', '0.5')
+            ),
         )
 
     async def connect(self):
         """Create database connection pool."""
-        try:
-            self.pool = await asyncpg.create_pool(
-                self.config.url,
-                min_size=self.config.min_connections,
-                max_size=self.config.max_connections,
-                command_timeout=self.config.command_timeout,
-                server_settings=self.config.server_settings or {}
-            )
+        attempts = max(1, self.config.connection_max_retries)
+        backoff = max(0.0, self.config.connection_retry_backoff_seconds)
+        last_error: Optional[Exception] = None
 
-            # Create tables if they don't exist
-            await self._initialize_tables()
+        for attempt in range(1, attempts + 1):
+            try:
+                self.pool = await asyncpg.create_pool(
+                    self.config.url,
+                    min_size=self.config.min_connections,
+                    max_size=self.config.max_connections,
+                    command_timeout=self.config.command_timeout,
+                    server_settings=self.config.server_settings or {}
+                )
 
-            self.logger.info("Connected to PostgreSQL database")
+                # Create tables if they don't exist
+                await self._initialize_tables()
 
-        except Exception as e:
-            self.logger.error(f"Failed to connect to database: {e}")
-            raise
+                self.logger.info(
+                    "Connected to PostgreSQL database (attempt %s/%s)",
+                    attempt,
+                    attempts,
+                )
+                return
+
+            except Exception as exc:
+                last_error = exc
+                if attempt < attempts:
+                    self.logger.warning(
+                        "Database connection attempt %s/%s failed: %s",
+                        attempt,
+                        attempts,
+                        exc,
+                    )
+                    await asyncio.sleep(backoff * attempt)
+                else:
+                    self.logger.error(
+                        "Failed to connect to database after %s attempts: %s",
+                        attempts,
+                        exc,
+                    )
+
+        if last_error:
+            raise last_error
+        raise RuntimeError("Database connection failed without error context")
 
     async def disconnect(self):
         """Close database connection pool."""
