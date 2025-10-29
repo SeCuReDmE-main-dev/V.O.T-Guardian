@@ -3,7 +3,6 @@
 import logging
 from typing import List, Optional
 
-import types
 
 import pytest
 
@@ -92,17 +91,41 @@ def anyio_backend():
 
 
 def _enable_datadog(monkeypatch, *, statsd: Optional[_RecorderStatsd] = None):
-    """Configure the Datadog module with stubbed SDK objects for success paths."""
-    monkeypatch.setattr(datadog_module, "DATADOG_AVAILABLE", True, raising=False)
-    monkeypatch.setattr(datadog_module, "Configuration", _StubConfiguration, raising=False)
-    monkeypatch.setattr(datadog_module, "ApiClient", _StubApiClient, raising=False)
-    monkeypatch.setattr(datadog_module, "EventsApi", _RecorderEventsApi, raising=False)
+    """Configure Datadog module with stubbed SDK objects for success paths."""
+    monkeypatch.setattr(
+        datadog_module,
+        "DATADOG_AVAILABLE",
+        True,
+        raising=False,
+    )
+    monkeypatch.setattr(
+        datadog_module,
+        "Configuration",
+        _StubConfiguration,
+        raising=False,
+    )
+    monkeypatch.setattr(
+        datadog_module,
+        "ApiClient",
+        _StubApiClient,
+        raising=False,
+    )
+    monkeypatch.setattr(
+        datadog_module,
+        "EventsApi",
+        _RecorderEventsApi,
+        raising=False,
+    )
 
     if statsd is not None:
         def fake_init_statsd(self):
             self.statsd = statsd
 
-        monkeypatch.setattr(DatadogClient, "_initialize_statsd", fake_init_statsd)
+        monkeypatch.setattr(
+            DatadogClient,
+            "_initialize_statsd",
+            fake_init_statsd,
+        )
 
 
 def test_missing_api_key_triggers_failover_logs(monkeypatch, caplog):
