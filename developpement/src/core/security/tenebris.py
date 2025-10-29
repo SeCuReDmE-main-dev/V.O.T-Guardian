@@ -114,20 +114,24 @@ class TenebrisProtocol:
             'call_id': call_id,
             'start_time': time.time(),
             'status': 'active',
-            'data_destroyed': False
+            'data_destroyed': False,
+            'sandbox_id': None,
         }
 
-    async def _create_isolated_sandbox(self, call_id: str, encryption_key: bytes) -> str:
+    async def _create_isolated_sandbox(
+        self,
+        session_id: str,
+        call_id: str,
+        encryption_key: bytes,
+    ) -> str:
         """Create an isolated E2B sandbox for analysis."""
         # This will integrate with the E2B sandbox manager
         # For now, return a placeholder
         sandbox_id = f"sb_{call_id}_{int(time.time())}"
 
-        # Store encryption key temporarily (will be destroyed)
-        self._active_sessions[sandbox_id] = {
-            'encryption_key': encryption_key,
-            'created_at': time.time()
-        }
+        if session_id in self._active_sessions:
+            self._active_sessions[session_id]['sandbox_id'] = sandbox_id
+            self._active_sessions[session_id]['encryption_key'] = encryption_key
 
         return sandbox_id
 
