@@ -128,6 +128,65 @@ def _enable_datadog(monkeypatch, *, statsd: Optional[_RecorderStatsd] = None):
         )
 
 
+def test_metric_success_logs_without_failover(monkeypatch, caplog):
+    statsd = _RecorderStatsd()
+    _enable_datadog(monkeypatch, statsd=statsd)
+
+    caplog.set_level(logging.INFO, logger=LOGGER)
+
+    client = DatadogClient(
+        config=DatadogConfig(api_key="token", app_key="app")
+    )
+
+    client.record_metric("vot.analysis.latency_ms", 128.0, {"region": "ca"})
+
+    assert statsd.calls, "StatsD call not recorded"
+    method, metric, value, tags = statsd.calls[0]
+    assert method == "histogram"
+    assert metric == "vot.analysis.latency_ms"
+    assert value == 128.0
+    assert any(tag.startswith("region:") for tag in tags)
+
+    success_logs = [
+        record.message for record in caplog.records
+        if "Datadog metric recorded" in record.message
+    ]
+    assert success_logs
+    assert client._failover_active is False
+
+
+@pytest.mark.anyio
+async def test_log_event_success_emits_info(monkeypatch, caplog):
+    statsd = _RecorderStatsd()
+    _enable_datadog(monkeypatch, statsd=statsd)
+
+    _RecorderEventsApi.instances.clear()
+
+    caplog.set_level(logging.INFO, logger=LOGGER)
+
+    client = DatadogClient(
+        config=DatadogConfig(api_key="token", app_key="app")
+    )
+
+    await client.log_event(
+        "Deployment",
+        {"status": "ok"},
+        alert_type="success",
+    )
+
+    assert _RecorderEventsApi.instances, "Events API stub not instantiated"
+    requests = _RecorderEventsApi.instances[0].requests
+    assert len(requests) == 1
+    assert getattr(requests[0], "title", "") == "Deployment"
+
+    info_logs = [
+        record.message for record in caplog.records
+        if "Datadog event published" in record.message
+    ]
+    assert info_logs
+    assert client._failover_active is False
+
+
 def test_missing_api_key_triggers_failover_logs(monkeypatch, caplog):
     caplog.set_level(logging.WARNING, logger=LOGGER)
 

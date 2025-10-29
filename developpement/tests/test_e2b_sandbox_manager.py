@@ -1,11 +1,16 @@
 """Integration-style tests for the E2B sandbox manager."""
 
 import logging
+import types
 
 import pytest
 
 from src.core.e2b import sandbox_manager as sandbox_module
-from src.core.e2b.sandbox_manager import E2BSandboxManager, SandboxConfig
+from src.core.e2b.sandbox_manager import (
+    E2BSandboxManager,
+    SandboxConfig,
+    SandboxInstance,
+)
 
 
 @pytest.fixture
