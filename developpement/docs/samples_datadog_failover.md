@@ -45,5 +45,3 @@ WARNING src.core.monitoring.datadog_client Datadog failover - StatsD client unav
 
 - Successful metric and event dispatch traces for observability baselines.
 - Retry backoff metadata once asynchronous transport retries are implemented.
-
-```}
