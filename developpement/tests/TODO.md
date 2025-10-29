@@ -6,7 +6,8 @@
 
 ## Critical (P0)
 
-- [ ] Hard-test `DatadogClient` failover: cover missing API key, HTTP error retries, and StatsD socket failures with log assertions (next micro-task).
+- [x] Hard-test `DatadogClient` failover: cover missing API key, HTTP error retries, and StatsD socket failures with log assertions (complete).
+- [ ] Validate Datadog success-path telemetry and retry scheduling so healthy traffic remains observable.
 
 ## High (P1)
 
