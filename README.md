@@ -315,6 +315,13 @@ argocd app create vot-guardian \
 | **Tenebris Time** | < 100ms | 65ms | ✅ |
 | **Uptime** | 99.9% | 99.95% | ✅ |
 
+## 📌 PO3 Sprint Status
+
+- Coverage: `postgresql_client` **83%**, project-wide **74%** (latest coverage sweep on 2025-10-28).
+- Modules exercised: PostgreSQL client, Datadog client, E2B sandbox manager, Tenebris protocol, ML predictor, API gateway.
+- Corner cases validated: teardown metrics (maintenance/saturation), partial migration rollback, pool exhaustion recovery, JSON corruption, compliance degradation.
+- Détails complets et artefacts: [PO3 Delivery Report](./developpement/docs/po3_delivery_report.md).
+
 ## 🧪 Testing
 
 ```bash
