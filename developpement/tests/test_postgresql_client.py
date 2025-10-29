@@ -139,6 +139,9 @@ class _TransactionalConnection:
         self.transactions.append(tx)
         return tx
 
+    async def execute(self, *_args, **_kwargs):
+        return None
+
 
 def test_store_analysis_result_logs_and_raises_on_error(caplog):
     client = PostgreSQLClient()
