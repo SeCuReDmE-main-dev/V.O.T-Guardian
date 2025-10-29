@@ -417,11 +417,14 @@ class DatadogClient:
                 }
             }
         except Exception as e:
-            self._record_failover(f"Failed to get service status: {e}", level=logging.ERROR)
+            self._record_failover(
+                f"Failed to get service status: {e}",
+                level=logging.ERROR,
+            )
             return {'status': 'error', 'error': str(e)}
 
     def _record_failover(self, reason: str, level: int = logging.WARNING):
-        """Emit a standardized failover log to ensure consistent diagnostics."""
+        """Emit standardized failover logs."""
         message = f"Datadog failover - {reason}"
 
         if level >= logging.ERROR:
