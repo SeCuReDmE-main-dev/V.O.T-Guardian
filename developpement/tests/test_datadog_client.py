@@ -145,6 +145,7 @@ def test_metric_success_logs_without_failover(monkeypatch, caplog):
     assert method == "histogram"
     assert metric == "vot.analysis.latency_ms"
     assert value == 128.0
+    assert tags is not None
     assert any(tag.startswith("region:") for tag in tags)
 
     success_logs = [
