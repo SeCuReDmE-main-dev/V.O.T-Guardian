@@ -52,6 +52,7 @@ class DatadogClient:
     def __init__(self, config: Optional[DatadogConfig] = None):
         self.config = config or self._load_config()
         self.logger = logging.getLogger(__name__)
+        self._failover_active = False
 
         # Initialize Datadog API client (if available)
         if DATADOG_AVAILABLE:
@@ -66,10 +67,14 @@ class DatadogClient:
             self.configuration = None
             self.api_client = None
             self.events_api = None
+            self._record_failover("Datadog SDK unavailable; monitoring operating in degraded mode", level=logging.ERROR)
 
         # Initialize statsd for metrics (if available)
         self.statsd = None
         self._initialize_statsd()
+
+        if not self.config.api_key:
+            self._record_failover("API key missing; Datadog integrations disabled", level=logging.ERROR)
 
     def _load_config(self) -> DatadogConfig:
         """Load configuration from environment variables."""
@@ -93,7 +98,9 @@ class DatadogClient:
             )
             self.statsd = statsd
         except ImportError:
-            self.logger.warning("Datadog statsd not available")
+            self._record_failover("Datadog statsd not available; metrics disabled", level=logging.ERROR)
+        except Exception as exc:
+            self._record_failover(f"Statsd initialization failed: {exc}", level=logging.ERROR)
 
     async def log_event(self, title: str, metadata: Dict[str, Any],
                        alert_type: str = 'info', tags: Optional[list] = None):
@@ -139,9 +146,11 @@ class DatadogClient:
             # Send event (if Datadog is available)
             if self.events_api:
                 self.events_api.create_event(event_request)
+            else:
+                self._record_failover("Events API unavailable; event buffered locally", level=logging.WARNING)
 
         except Exception as e:
-            self.logger.error(f"Failed to log event to Datadog: {e}")
+            self._record_failover(f"Failed to log event to Datadog: {e}", level=logging.ERROR)
 
     def _format_metadata(self, metadata: Dict[str, Any]) -> str:
         """Format metadata for display in event text."""
@@ -164,6 +173,7 @@ class DatadogClient:
             tags: Additional tags
         """
         if not self.statsd:
+            self._record_failover("StatsD client unavailable; metric dropped", level=logging.WARNING)
             return
 
         try:
@@ -185,7 +195,7 @@ class DatadogClient:
                 self.statsd.gauge(metric_name, value, tags=default_tags)
 
         except Exception as e:
-            self.logger.error(f"Failed to record metric: {e}")
+            self._record_failover(f"Failed to record metric: {e}", level=logging.ERROR)
 
     def record_analysis_metrics(self, call_id: str, prediction: str,
                               confidence: float, latency_ms: float):
@@ -286,5 +296,18 @@ class DatadogClient:
                 }
             }
         except Exception as e:
-            self.logger.error(f"Failed to get service status: {e}")
+            self._record_failover(f"Failed to get service status: {e}", level=logging.ERROR)
             return {'status': 'error', 'error': str(e)}
+
+    def _record_failover(self, reason: str, level: int = logging.WARNING):
+        """Emit a standardized failover log to ensure consistent diagnostics."""
+        message = f"Datadog failover - {reason}"
+
+        if level >= logging.ERROR:
+            self.logger.error(message)
+        elif level <= logging.INFO:
+            self.logger.info(message)
+        else:
+            self.logger.warning(message)
+
+        self._failover_active = True
