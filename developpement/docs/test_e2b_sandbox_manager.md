@@ -11,6 +11,8 @@
 - `test_acquire_sandbox_logs_pool_exhaustion`: confirms pool exhaustion surfaces as an exception with error-level telemetry.
 - `test_scale_pool_trims_idle_sandboxes`: validates the automatic scale-in heuristic trims idle workers and logs destruction telemetry.
 - `test_health_check_loop_cycles_and_logs`: drives the async loop through success, failure, recovery, and graceful cancellation, asserting emitted diagnostics.
+- `test_create_sandbox_uses_code_interpreter_when_generic_unavailable`: verifies fallback creation when generic templates are unavailable, asserting diagnostics and payload.
+- `test_scale_pool_trims_heterogeneous_templates`: ensures heterogeneous pools trim idle sandboxes without impacting busy code interpreter instances.
 
 ## Diagnostic Log Samples
 
@@ -25,6 +27,9 @@ WARNING Sandbox sb-slow response degraded (6.50s)
 ERROR Sandbox pool exhausted: 1 active of max 1
 INFO  Destroyed E2B sandbox: sb-1
 INFO  Destroyed E2B sandbox: sb-2
+INFO  Created new E2B sandbox: ci-1
+INFO  Destroyed E2B sandbox: audio-1
+INFO  Destroyed E2B sandbox: ml-1
 ERROR Health check error: synthetic health failure
 ```
 
@@ -33,15 +38,16 @@ All entries originate from `src.core.e2b.sandbox_manager` and are captured via `
 ## Blind Spots and Future Coverage
 
 1. Health loop coverage now includes cancellation and recovery, but long-running drift detection (hours-long windows) still needs synthetic timers.
-2. Scale-in trimming validated for homogeneous pools; mixed template pools and quota-aware downsizing remain TODO.
-3. Multi-template and Code Interpreter fallbacks are still mocked out; incorporate availability toggles once SDK stubs are prepared.
+2. Scale-in trimming validated for mixed pools; quota-aware downsizing across heterogeneous workloads remains TODO.
+3. Code Interpreter fallbacks now covered via stubs; integrate real SDK toggles when upstream support lands.
 4. Long-lived sandboxes and file transfer helpers are not exercised; consider integration hooks once fixture assets are available.
 
 ## Corner Cases & Observations
 
-- Scale-in trimming confirmed that only idle healthy sandboxes are destroyed; busy instances remain untouched, protecting in-flight work.
+- Scale-in trimming confirmed that only idle healthy sandboxes are destroyed; busy instances remain untouched, protecting in-flight work across template types.
 - The async health loop continues after synthetic failures, emitting a single error per fault and resuming normal operation, which matches the desired resilience profile.
 - No surprise system interactions surfaced beyond the expected logging cadence; cancellation occurs cleanly once the scheduler raises `CancelledError`.
+- Code interpreter fallback validated that template unavailability still provisions running sandboxes without leaking credentials or bypassing logging.
 
 ## Impact on Pipeline Robustness
 
