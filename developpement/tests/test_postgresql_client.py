@@ -11,6 +11,12 @@ from src.core.database import postgresql_client as postgresql_module
 from src.core.database.postgresql_client import PostgreSQLClient
 
 
+@pytest.fixture
+def anyio_backend():
+    """Force anyio-driven tests to use the asyncio backend."""
+    return "asyncio"
+
+
 class DummyRecord(dict):
     """Minimal stand-in for asyncpg.Record that behaves like a dict."""
 
