@@ -9,21 +9,27 @@ from src.core.monitoring import datadog_client as datadog_module
 from src.core.monitoring.datadog_client import DatadogClient, DatadogConfig
 
 
+LOGGER = "src.core.monitoring.datadog_client"
+
+
 class _FailingStatsd:
     """StatsD stub that raises to emulate network outages."""
 
     def __init__(self):
         self.calls: List[str] = []
 
-    def histogram(self, name, value, *, tags=None):  # pragma: no cover - exercised via tests
+    def histogram(self, name, value, *, tags=None):
+        """Always raise to mimic histogram failure."""
         self.calls.append("histogram")
         raise TimeoutError("statsd timeout")
 
-    def increment(self, name, value, *, tags=None):  # pragma: no cover - exercised via tests
+    def increment(self, name, value, *, tags=None):
+        """Always raise to mimic counter failure."""
         self.calls.append("increment")
         raise TimeoutError("statsd timeout")
 
-    def gauge(self, name, value, *, tags=None):  # pragma: no cover - exercised via tests
+    def gauge(self, name, value, *, tags=None):
+        """Always raise to mimic gauge failure."""
         self.calls.append("gauge")
         raise TimeoutError("statsd timeout")
 
@@ -31,12 +37,17 @@ class _FailingStatsd:
 @pytest.fixture(autouse=True)
 def reset_datadog_module(monkeypatch):
     """Ensure each test starts from a clean availability flag."""
-    monkeypatch.setattr(datadog_module, "DATADOG_AVAILABLE", False, raising=False)
+    monkeypatch.setattr(
+        datadog_module,
+        "DATADOG_AVAILABLE",
+        False,
+        raising=False,
+    )
     yield
 
 
 def test_missing_api_key_triggers_failover_logs(monkeypatch, caplog):
-    caplog.set_level(logging.WARNING, logger="src.core.monitoring.datadog_client")
+    caplog.set_level(logging.WARNING, logger=LOGGER)
 
     client = DatadogClient(config=DatadogConfig(api_key=""))
 
@@ -50,8 +61,8 @@ def test_missing_api_key_triggers_failover_logs(monkeypatch, caplog):
     assert any("SDK unavailable" in msg for msg in failover_messages)
 
 
-def test_record_metric_failure_logs_failover_without_raising(monkeypatch, caplog):
-    caplog.set_level(logging.ERROR, logger="src.core.monitoring.datadog_client")
+def test_metric_failover_logs_without_raising(monkeypatch, caplog):
+    caplog.set_level(logging.ERROR, logger=LOGGER)
 
     def fake_init_statsd(self):
         self.statsd = _FailingStatsd()
@@ -73,7 +84,7 @@ def test_record_metric_failure_logs_failover_without_raising(monkeypatch, caplog
 
 @pytest.mark.anyio
 async def test_log_event_network_failure_records_failover(monkeypatch, caplog):
-    caplog.set_level(logging.ERROR, logger="src.core.monitoring.datadog_client")
+    caplog.set_level(logging.ERROR, logger=LOGGER)
 
     class StubConfiguration:
         def __init__(self):
@@ -89,21 +100,43 @@ async def test_log_event_network_failure_records_failover(monkeypatch, caplog):
             self.api_client = api_client
             self.calls = 0
 
-        def create_event(self, request):  # pragma: no cover - exercised via test
+        def create_event(self, request):
             self.calls += 1
             raise TimeoutError("datadog timeout")
 
-    monkeypatch.setattr(datadog_module, "DATADOG_AVAILABLE", True, raising=False)
-    monkeypatch.setattr(datadog_module, "Configuration", StubConfiguration, raising=False)
-    monkeypatch.setattr(datadog_module, "ApiClient", StubApiClient, raising=False)
-    monkeypatch.setattr(datadog_module, "EventsApi", FailingEventsApi, raising=False)
+    monkeypatch.setattr(
+        datadog_module,
+        "DATADOG_AVAILABLE",
+        True,
+        raising=False,
+    )
+    monkeypatch.setattr(
+        datadog_module,
+        "Configuration",
+        StubConfiguration,
+        raising=False,
+    )
+    monkeypatch.setattr(
+        datadog_module,
+        "ApiClient",
+        StubApiClient,
+        raising=False,
+    )
+    monkeypatch.setattr(
+        datadog_module,
+        "EventsApi",
+        FailingEventsApi,
+        raising=False,
+    )
 
     async def fake_init_statsd(self):
         self.statsd = None
 
     monkeypatch.setattr(DatadogClient, "_initialize_statsd", fake_init_statsd)
 
-    client = DatadogClient(config=DatadogConfig(api_key="token", app_key="app"))
+    client = DatadogClient(
+        config=DatadogConfig(api_key="token", app_key="app")
+    )
 
     await client.log_event("Test", {"key": "value"})
     await client.log_event("Test", {"key": "value"})
@@ -123,7 +156,7 @@ async def test_log_event_network_failure_records_failover(monkeypatch, caplog):
 
 @pytest.mark.anyio
 async def test_failover_chain_captures_all_diagnostics(caplog):
-    caplog.set_level(logging.WARNING, logger="src.core.monitoring.datadog_client")
+    caplog.set_level(logging.WARNING, logger=LOGGER)
 
     client = DatadogClient(config=DatadogConfig(api_key="chain"))
 
