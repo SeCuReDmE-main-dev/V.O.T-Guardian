@@ -4,6 +4,14 @@
 
 **Attribution:** Jean-Sebastien Beaulieu · [ORCID 0009-0007-2904-0443](https://orcid.org/0009-0007-2904-0443) · [SecuredMe](https://securedme.ca) · [V.O.T Guardian](https://vot-guardian.securedme.ca)
 
+<!-- SECUREDME-SUITE-BADGES:START -->
+[![Issues](https://img.shields.io/github/issues/SeCuReDmE-main-dev/V.O.T-Guardian?color=111722)](https://github.com/SeCuReDmE-main-dev/V.O.T-Guardian/issues)
+[![Milestones](https://img.shields.io/badge/milestones-M0--M7-D7263D)](https://github.com/SeCuReDmE-main-dev/V.O.T-Guardian/milestones)
+[![Project Board](https://img.shields.io/badge/project-kanban-5484ED)](https://github.com/users/SeCuReDmE-main-dev/projects/3)
+[![Branch](https://img.shields.io/badge/branch-master-0E7490)](https://github.com/SeCuReDmE-main-dev/V.O.T-Guardian/tree/master)
+<!-- SECUREDME-SUITE-BADGES:END -->
+
+
 
 ## School Authentication And Secret Boundary
 This repository is a small SecuredMe school tool. Official classroom use must not require `.env` files, API keys, raw tokens, or local model secrets. Student and teacher workflows must use Codex/OpenAI or Antigravity/Gemini through browser WebAuth, fingerprinted session approval, and encrypted local session records when authentication is needed.
@@ -88,6 +96,7 @@ personal data to the repository.
 Jean-Sebastien Beaulieu  
 ORCID: https://orcid.org/0009-0007-2904-0443  
 SecuredMe
+
 
 
 
