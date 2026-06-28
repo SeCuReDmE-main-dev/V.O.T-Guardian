@@ -90,7 +90,7 @@ const handleNewAnalysis = () => {
 
           <p class="text-xl text-surface-600 dark:text-surface-400 max-w-3xl mx-auto">
             Upload audio files for real-time analysis using our advanced CNN-LSTM model.
-            Detect AI-generated voices with industry-leading accuracy and compliance.
+            Review voice-risk signals for supervised fraud-awareness training.
           </p>
         </div>
 
