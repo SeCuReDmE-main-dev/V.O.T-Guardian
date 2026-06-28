@@ -9,3 +9,7 @@ This repository uses the Secured Educational Cybersecurity License 2.0 (`License
 Cybersecurity and voice-fraud features are training tools for supervised learning and public-interest awareness. They must not be used for attack, impersonation, surveillance misuse, fraud, bypass, abuse, or criminal automation.
 
 Users may fork the code under the repository license, but the maintainer only supports the reviewed official version.
+## Development Stability Gate
+This repository is tagged `pre-alpha` and `in-development`. External PRs are not evaluated for merge before the official school tool is stable and fully functional for classroom use. Until that gate is met, outside contributors should open issues or build local forks/plugins; maintainers may still push internal stabilization commits.
+
+

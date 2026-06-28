@@ -1,5 +1,8 @@
 # V.O.T. Guardian
 
+> **Development status.** This school tool is currently tagged **pre-alpha / in development**. External PRs are not evaluated for merge until the maintained tool reaches a stable, fully functional 100% classroom release after the pre-alpha phase. Issues and forks remain allowed, but official PR review is paused until that stability gate is met.
+
+
 V.O.T. Guardian is a supervised cybersecurity education and fraud-awareness
 project for teaching how voice-risk review systems should be designed with
 privacy, consent, evidence boundaries, and human review.
@@ -75,3 +78,5 @@ personal data to the repository.
 Jean-Sebastien Beaulieu  
 ORCID: https://orcid.org/0009-0007-2904-0443  
 SecuredMe
+
+
