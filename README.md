@@ -25,7 +25,7 @@ privacy, consent, evidence boundaries, and human review.
 > [AGENTS.md](AGENTS.md).
 
 > **License.** This project uses the Secured Educational Cybersecurity License
-> 2.0 (`LicenseRef-SECL-2.0`). See [LICENSE](LICENSE), [NOTICE](NOTICE), and
+> 2.0 (SECL-2.0). See [LICENSE](LICENSE), [NOTICE](NOTICE), and
 > [DISCLAIMER](DISCLAIMER).
 
 ## What This Project Is
@@ -88,6 +88,7 @@ personal data to the repository.
 Jean-Sebastien Beaulieu  
 ORCID: https://orcid.org/0009-0007-2904-0443  
 SecuredMe
+
 
 
 
