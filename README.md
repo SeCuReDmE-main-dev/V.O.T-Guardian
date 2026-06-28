@@ -59,7 +59,7 @@ privacy, consent, evidence boundaries, and human review.
 - A place to learn how cybersecurity tools should avoid overclaiming,
   autonomous accusations, and unsafe surveillance.
 - A classroom planning surface for responsible public communication:
-  [Educational Marketing Plan Template](docs/educational_marketing_plan_template.md).
+  [Educational Marketing Plan Template](Docs/educational_marketing_plan_template.md).
 
 ## What This Project Is Not
 
