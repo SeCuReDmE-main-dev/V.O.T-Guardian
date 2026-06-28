@@ -2,6 +2,8 @@
 
 **A neuro-inspired system for detecting AI-generated voice fraud targeting vulnerable elderly populations.**
 
+> **Official school governance.** V.O.T. Guardian is for supervised cybersecurity training and public-interest fraud-awareness education. It is not an attack, impersonation, surveillance-abuse, or criminal automation tool. The maintained classroom route supports Codex/OpenAI or Antigravity/Gemini only. See [SCHOOL_TOOL_GOVERNANCE.md](SCHOOL_TOOL_GOVERNANCE.md) and [AGENTS.md](AGENTS.md).
+
 [![License](https://img.shields.io/badge/License-Proprietary-red.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://python.org)
 [![Architecture](https://img.shields.io/badge/Architecture-E2B%20%2B%20OpenShift%20%2B%20Datadog-green.svg)](#)
