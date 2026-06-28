@@ -11,6 +11,20 @@
 [![Branch](https://img.shields.io/badge/branch-master-0E7490)](https://github.com/SeCuReDmE-main-dev/V.O.T-Guardian/tree/master)
 <!-- SECUREDME-SUITE-BADGES:END -->
 
+<!-- SECUREDME-STARTUP-SUPPORT:START -->
+<p align="center">
+  <a href="https://e2b.dev/startups">
+    <img alt="Supported by E2B for Startups" src="https://img.shields.io/badge/Supported%20by-E2B%20for%20Startups-FF8800?style=for-the-badge" />
+  </a>
+  <a href="https://www.datadoghq.com/partner/datadog-for-startups/">
+    <img alt="Supported by Datadog for Startups" src="https://img.shields.io/badge/Supported%20by-Datadog%20for%20Startups-632CA6?style=for-the-badge&amp;logo=datadog&amp;logoColor=white" />
+  </a>
+</p>
+
+> **Startup support acknowledgement.** This SecuredMe school tool is part of the suite supported through E2B for Startups and Datadog for Startups. E2B is used as an optional isolated sandbox and audit lane; Datadog is used as an optional observability and review-support lane. No E2B or Datadog secret is stored in this README.
+<!-- SECUREDME-STARTUP-SUPPORT:END -->
+
+
 
 
 ## School Authentication And Secret Boundary
@@ -96,6 +110,7 @@ personal data to the repository.
 Jean-Sebastien Beaulieu  
 ORCID: https://orcid.org/0009-0007-2904-0443  
 SecuredMe
+
 
 
 
