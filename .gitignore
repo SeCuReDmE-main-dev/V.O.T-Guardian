@@ -78,6 +78,13 @@ htmlcov/
 *.log
 instance/
 
+# Private planning / monetary strategy archives
+Docs/strategie monetaire/
+Docs/strategie monetaire/**
+**/strategie monetaire/
+**/monetary-strategy-pdfs/
+SecuredMe_private_archive/
+
 # Byte-compiled / caches
 *.pyo
 *.pyd
