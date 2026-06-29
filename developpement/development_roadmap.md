@@ -16,14 +16,14 @@
 # Go to: https://e2b.dev
 # Sign up (free tier available)
 # Copy your API key
-E2B_API_KEY=your_actual_e2b_key_here
+E2B_API_KEY=placeholder_e2b_key
 ```
 
 #### **2. Get Datadog API Key** (OPTIONAL for now)
 ```bash
 # Go to: https://datadoghq.com (free trial)
 # Or skip for now - we can add monitoring later
-DD_API_KEY=your_datadog_key_here
+DD_API_KEY=placeholder_datadog_key
 ```
 
 #### **3. Install Databases on Your Machine**
@@ -117,7 +117,7 @@ For **development**, use:
 
 4. **Update .env:**
    ```bash
-   E2B_API_KEY=your_real_key_here
+   E2B_API_KEY=placeholder_e2b_key
    POSTGRESQL_URL=postgresql://your_username:your_password@localhost:5432/vot_guardian
    ```
 

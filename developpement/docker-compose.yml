@@ -15,7 +15,7 @@ services:
     environment:
       POSTGRES_DB: vot_guardian
       POSTGRES_USER: vot_user
-      POSTGRES_PASSWORD: vot_password
+      POSTGRES_PASSWORD: vot_dev_placeholder_password
     ports:
       - "5432:5432"
     volumes:

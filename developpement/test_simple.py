@@ -37,17 +37,17 @@ def test_basic():
     env_example = Path('.env.example')
     if env_example.exists():
         content = env_example.read_text()
-        if 'E2B_API_KEY=your_e2b_api_key_here' in content:
+        if 'E2B_API_KEY=placeholder_e2b_key' in content:
             print("[OK] E2B API key placeholder found")
         else:
             print("[FAIL] E2B API key placeholder missing")
 
-        if 'DD_API_KEY=your_datadog_api_key_here' in content:
+        if 'DD_API_KEY=placeholder_datadog_key' in content:
             print("[OK] Datadog API key placeholder found")
         else:
             print("[FAIL] Datadog API key placeholder missing")
 
-        if 'REDHAT_API_KEY=your_redhat_api_key_here' in content:
+        if 'REDHAT_API_KEY=placeholder_redhat_key' in content:
             print("[OK] Red Hat API key placeholder found")
         else:
             print("[FAIL] Red Hat API key placeholder missing")

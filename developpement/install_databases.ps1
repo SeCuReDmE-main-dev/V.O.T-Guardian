@@ -5,7 +5,7 @@
 
 param(
     [string]$InstallPath = "C:\VOT_Databases",
-    [string]$PostgresPassword = "vot_password",
+    [string]$PostgresPassword = "vot_dev_placeholder_password",
     [string]$DatabaseName = "vot_guardian"
 )
 

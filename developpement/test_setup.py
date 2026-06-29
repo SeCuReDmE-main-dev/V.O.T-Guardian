@@ -35,9 +35,9 @@ DEPENDENCIES = [
 ]
 
 ENV_PLACEHOLDERS = [
-    "E2B_API_KEY=your_e2b_api_key_here",
-    "DD_API_KEY=your_datadog_api_key_here",
-    "REDHAT_API_KEY=your_redhat_api_key_here",
+    "E2B_API_KEY=placeholder_e2b_key",
+    "DD_API_KEY=placeholder_datadog_key",
+    "REDHAT_API_KEY=placeholder_redhat_key",
 ]
 
 REQUIRED_FILES = [
