@@ -1,0 +1,25 @@
+{
+  "name": "securedme-vot-guardian-antigravity-adapter",
+  "displayName": "V.O.T Guardian Antigravity Adapter",
+  "description": "V.O.T Guardian education adapter.",
+  "version": "0.1.0",
+  "publisher": "SecuredMe",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Education"
+  ],
+  "activationEvents": [
+    "onCommand:securedme.votguardian.openAdapter"
+  ],
+  "main": "./extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "securedme.votguardian.openAdapter",
+        "title": "SecuredMe: Open V.O.T Guardian Adapter"
+      }
+    ]
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "name": "securedme-vot-guardian-codex-adapter",
+  "version": "0.1.0",
+  "description": "V.O.T Guardian education adapter.",
+  "author": {
+    "name": "SecuredMe",
+    "url": "https://securedme.ca"
+  },
+  "homepage": "https://vot-guardian.securedme.ca",
+  "license": "MIT",
+  "keywords": [
+    "securedme",
+    "education",
+    "webauth",
+    "token-governor"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "V.O.T Guardian Codex Adapter",
+    "shortDescription": "V.O.T Guardian education adapter.",
+    "longDescription": "Repo-local Codex adapter for V.O.T Guardian. It keeps the app in pre-alpha, uses browser-authenticated OpenAI/Codex workflows, forbids copied secrets, and prepares future Token Governor and MCP integration.",
+    "developerName": "SecuredMe",
+    "category": "Education",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Adapter"
+    ],
+    "websiteURL": "https://vot-guardian.securedme.ca",
+    "defaultPrompt": [
+      "Open the V.O.T Guardian adapter context.",
+      "Check WebAuth readiness without secrets.",
+      "Plan a Token Governor handoff."
+    ]
+  },
+  "repository": "https://github.com/SeCuReDmE-main-dev/V.O.T-Guardian"
+}
