@@ -104,3 +104,4 @@ manifests/**/generated/
 # VS Code workspace backups
 # -----------------------------
 .history/
+site/
