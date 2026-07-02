@@ -46,8 +46,7 @@ privacy, consent, evidence boundaries, and human review.
 > [SCHOOL_TOOL_GOVERNANCE.md](SCHOOL_TOOL_GOVERNANCE.md) and
 > [AGENTS.md](AGENTS.md).
 
-> **License.** This project uses the Secured Educational Cybersecurity License
-> 2.0 (SECL-2.0). See [LICENSE](LICENSE), [NOTICE](NOTICE), and
+> **License.** This project uses the Secured Educational Cybersecurity License 2.0 (SECL-2.0). It is provided for defensive education, fraud-awareness, simulation, and supervised cyber training. Offensive workflows, unsafe surveillance, credential theft, fraud, bypass, and criminal automation are not maintained or endorsed by the official school version. See [LICENSE](LICENSE), [NOTICE](NOTICE), [DISCLAIMER](DISCLAIMER), and [SAFETY.md](SAFETY.md).
 > [DISCLAIMER](DISCLAIMER).
 
 ## What This Project Is
