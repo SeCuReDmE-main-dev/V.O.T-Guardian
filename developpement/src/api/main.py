@@ -22,8 +22,12 @@ import time
 import uuid
 from datetime import datetime
 from typing import Any, Dict
-from flask import Flask, request, jsonify
+from flask import Flask, Response, request, jsonify
 from flask_cors import CORS
+try:
+    from flask_sock import Sock  # type: ignore
+except Exception:  # pragma: no cover - optional runtime dependency
+    Sock = None  # type: ignore[assignment]
 try:
     # Load environment variables from a local .env if present
     from dotenv import load_dotenv, find_dotenv  # type: ignore
@@ -58,11 +62,18 @@ from ..core.e2b.sandbox_manager import E2BSandboxManager
 from ..core.audio.processor import AudioProcessor
 from ..core.ml.predictor import MLPredictor
 from ..core.database.postgresql_client import PostgreSQLClient
+from ..core.twilio_gateway import (
+    TwilioGateway,
+    TwilioRequestValidationError,
+    form_mapping,
+    parse_json_event,
+)
 from ..config.settings import Settings
 
 # Initialize Flask app
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('API_SECRET_KEY', 'dev-secret-key')
+sock = Sock(app) if Sock is not None else None
 
 # Enable CORS for frontend (Vite dev server on port 5173)
 CORS(
@@ -81,6 +92,7 @@ e2b_manager = E2BSandboxManager()
 audio_processor = AudioProcessor()
 ml_predictor = MLPredictor()
 db_client = PostgreSQLClient()
+twilio_gateway = TwilioGateway()
 
 # Configure logging
 logging.basicConfig(
@@ -217,6 +229,48 @@ def _record_metrics(
         )
 
 
+async def _persist_twilio_event(
+    event_type: str,
+    session_id: str,
+    metadata: Dict[str, Any],
+) -> None:
+    """Store Twilio event metadata without persisting raw audio."""
+    try:
+        await _ensure_db_connection()
+        await db_client.log_audit_event(
+            event_type=event_type,
+            call_id=metadata.get("call_sid"),
+            session_id=session_id,
+            metadata=json.dumps({
+                "source": "twilio",
+                "raw_audio_retained": False,
+                **metadata,
+            }),
+        )
+    except Exception as persist_error:  # pragma: no cover - best effort only
+        logger.warning(
+            "Failed to persist Twilio audit event for %s: %s",
+            session_id,
+            persist_error,
+        )
+
+
+def _record_twilio_metric(
+    metric_name: str,
+    value: float,
+    session_id: str,
+) -> None:
+    """Emit Twilio-specific metrics without blocking webhook responses."""
+    try:
+        datadog.record_metric(
+            metric_name,
+            value,
+            {"session_id": session_id, "surface": "twilio"},
+        )
+    except Exception as metrics_error:  # pragma: no cover - best effort only
+        logger.debug("Twilio metric emission failed: %s", metrics_error)
+
+
 def _build_response_payload(
     call_id: str,
     prediction: Dict[str, Any],
@@ -272,6 +326,111 @@ def health_check():
         'version': '1.0.0',
         'service': 'vot-guardian-api'
     })
+
+
+@app.route('/twilio/voice', methods=['GET', 'POST'])
+def twilio_voice():
+    """Twilio inbound voice webhook with consent-first Media Stream TwiML."""
+    form = form_mapping(request.values)
+    signature = request.headers.get('X-Twilio-Signature', '')
+
+    try:
+        twilio_gateway.validate_request(request.url, form, signature)
+    except TwilioRequestValidationError as validation_error:
+        logger.warning("Rejected Twilio webhook: %s", validation_error)
+        return jsonify({
+            "error": "forbidden",
+            "message": "Twilio signature validation failed",
+        }), 403
+
+    twiml, session = twilio_gateway.build_voice_response(form)
+    session_id = session.get("session_id", "unknown")
+    _record_twilio_metric("vot.twilio.voice_webhook", 1, session_id)
+
+    try:
+        asyncio.run(_persist_twilio_event(
+            "TWILIO_VOICE_WEBHOOK",
+            session_id,
+            {
+                "call_sid": session.get("call_sid"),
+                "status": session.get("status"),
+                "raw_audio_retained": False,
+            },
+        ))
+    except RuntimeError:
+        logger.debug("Skipping nested Twilio audit persistence for %s", session_id)
+
+    return Response(twiml, mimetype='text/xml')
+
+
+@app.route('/api/v1/twilio/sessions/<session_id>', methods=['GET'])
+def twilio_session_status(session_id: str):
+    """Return redacted live review state for a Twilio call session."""
+    session = twilio_gateway.store.get(session_id)
+    if session is None:
+        return jsonify({
+            "error": "not_found",
+            "message": "Twilio session not found or expired",
+        }), 404
+    return jsonify(session), 200
+
+
+@app.route('/twilio/media/events', methods=['POST'])
+def twilio_media_event_replay():
+    """Development/test replay endpoint for a single Media Streams JSON event."""
+    payload = request.get_json(silent=True) or {}
+    if not isinstance(payload, dict):
+        return jsonify({"error": "Bad request", "message": "JSON object required"}), 400
+
+    session_id = request.args.get("session_id") or payload.get("session_id")
+    result = twilio_gateway.handle_media_event(payload, str(session_id) if session_id else None)
+    if result.get("accepted"):
+        effective_session_id = (
+            twilio_gateway._session_id_from_event(payload)  # pylint: disable=protected-access
+            or session_id
+            or "unknown"
+        )
+        _record_twilio_metric("vot.twilio.media_event", 1, str(effective_session_id))
+    return jsonify(result), 200 if result.get("accepted") else 400
+
+
+if sock is not None:
+    @sock.route('/twilio/media')  # pragma: no cover - exercised manually/live
+    def twilio_media_socket(ws):
+        """Twilio Media Streams WebSocket endpoint."""
+        active_session_id = None
+        pending_events = []
+
+        while True:
+            raw_message = ws.receive()
+            if raw_message is None:
+                break
+
+            try:
+                event = parse_json_event(raw_message)
+            except Exception as parse_error:
+                logger.warning("Malformed Twilio Media Stream event: %s", parse_error)
+                continue
+
+            event_session_id = twilio_gateway._session_id_from_event(event)  # pylint: disable=protected-access
+            if event_session_id:
+                active_session_id = event_session_id
+
+            if not active_session_id:
+                pending_events.append(event)
+                continue
+
+            for pending_event in pending_events:
+                twilio_gateway.handle_media_event(pending_event, active_session_id)
+            pending_events.clear()
+
+            result = twilio_gateway.handle_media_event(event, active_session_id)
+            if result.get("accepted"):
+                _record_twilio_metric(
+                    "vot.twilio.websocket_event",
+                    1,
+                    active_session_id,
+                )
 
 
 @app.route('/analyze', methods=['POST'])

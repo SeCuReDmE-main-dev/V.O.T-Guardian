@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
+import { apiUrl } from '../utils/api'
 
 const systemStatus = ref({
   api: 'checking',
@@ -25,7 +26,7 @@ const statusLabels: Record<string, string> = {
 const checkSystemHealth = async () => {
   try {
     // Check API health
-    const apiResponse = await fetch('http://localhost:8000/health')
+    const apiResponse = await fetch(apiUrl('/health'))
     systemStatus.value.api = apiResponse.ok ? 'healthy' : 'error'
   } catch {
     systemStatus.value.api = 'error'

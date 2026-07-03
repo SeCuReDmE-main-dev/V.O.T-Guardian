@@ -61,6 +61,9 @@ plugins:
 - search
 nav:
 - Home: index.md
+- Twilio Media Streams Runbook: twilio-media-streams-runbook.md
+- Twilio Application Packet: twilio-application-packet.md
+- Twilio Demo And Risk Assets: twilio-demo-risk-assets.md
 - Accessibility:
   - Edge User Console: accessibility/edge-user-console.md
   - Neurodivergent Comfort: accessibility/neurodivergent-comfort.md

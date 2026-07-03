@@ -20,6 +20,8 @@ cryptography==41.0.7
 # Core Python packages for the application
 Flask==3.0.0              # Web framework
 Flask-Cors==4.0.0         # CORS for cross-origin requests from frontend
+flask-sock>=0.7,<0.8     # WebSocket endpoint for Twilio Media Streams
+twilio>=9.0,<10.0        # Twilio request validation and TwiML helpers
 SQLAlchemy==2.0.23        # ORM for PostgreSQL
 torch==2.1.0             # ML framework for CNN-LSTM
 librosa==0.10.1          # Audio processing

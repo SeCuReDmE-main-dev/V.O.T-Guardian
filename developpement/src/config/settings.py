@@ -43,6 +43,17 @@ class Settings:
     datadog_service: str = field(default_factory=lambda: os.getenv('DD_SERVICE', 'vot-guardian'))
     datadog_env: str = field(default_factory=lambda: os.getenv('DD_ENV', 'development'))
 
+    # Twilio Voice / Media Streams Settings
+    twilio_account_sid: str = field(default_factory=lambda: os.getenv('TWILIO_ACCOUNT_SID', ''))
+    twilio_auth_token: str = field(default_factory=lambda: os.getenv('TWILIO_AUTH_TOKEN', ''))
+    twilio_voice_number: str = field(default_factory=lambda: os.getenv('TWILIO_VOICE_NUMBER', ''))
+    twilio_public_base_url: str = field(default_factory=lambda: os.getenv('TWILIO_PUBLIC_BASE_URL', 'https://example.invalid'))
+    twilio_media_ws_url: str = field(default_factory=lambda: os.getenv('TWILIO_MEDIA_WS_URL', ''))
+    twilio_validate_signatures: bool = field(default_factory=lambda: os.getenv('TWILIO_VALIDATE_SIGNATURES', 'true').lower() == 'true')
+    twilio_demo_mode: bool = field(default_factory=lambda: os.getenv('TWILIO_DEMO_MODE', 'false').lower() == 'true')
+    twilio_max_media_buffer_bytes: int = field(default_factory=lambda: int(os.getenv('TWILIO_MAX_MEDIA_BUFFER_BYTES', '256000')))
+    twilio_max_call_duration_seconds: int = field(default_factory=lambda: int(os.getenv('TWILIO_MAX_CALL_DURATION_SECONDS', '300')))
+
     # ML Settings
     ml_model_path: str = field(default_factory=lambda: os.getenv('ML_MODEL_PATH', '/models/vot-cnn-lstm-v2.1.pth'))
     ml_confidence_threshold: float = field(default_factory=lambda: float(os.getenv('ML_CONFIDENCE_THRESHOLD', '0.5')))
@@ -87,6 +98,16 @@ class Settings:
         if self.tenebris_max_time_ms <= 0:
             raise ValueError(f"Invalid Tenebris max time: {self.tenebris_max_time_ms}")
 
+        # Validate Twilio bounds
+        if self.twilio_max_media_buffer_bytes <= 0:
+            raise ValueError(
+                f"Invalid Twilio media buffer size: {self.twilio_max_media_buffer_bytes}"
+            )
+        if self.twilio_max_call_duration_seconds <= 0:
+            raise ValueError(
+                f"Invalid Twilio call duration: {self.twilio_max_call_duration_seconds}"
+            )
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert settings to dictionary."""
         return {
@@ -98,6 +119,14 @@ class Settings:
             'mindsdb_url': self.mindsdb_url,
             'e2b_api_key_configured': bool(self.e2b_api_key),
             'datadog_api_key_configured': bool(self.datadog_api_key),
+            'twilio_account_sid_configured': bool(self.twilio_account_sid),
+            'twilio_voice_number_configured': bool(self.twilio_voice_number),
+            'twilio_public_base_url': self.twilio_public_base_url,
+            'twilio_media_ws_url_configured': bool(self.twilio_media_ws_url),
+            'twilio_validate_signatures': self.twilio_validate_signatures,
+            'twilio_demo_mode': self.twilio_demo_mode,
+            'twilio_max_media_buffer_bytes': self.twilio_max_media_buffer_bytes,
+            'twilio_max_call_duration_seconds': self.twilio_max_call_duration_seconds,
             'ml_model_path': self.ml_model_path,
             'ml_confidence_threshold': self.ml_confidence_threshold,
             'tenebris_max_time_ms': self.tenebris_max_time_ms,
@@ -149,6 +178,14 @@ class Settings:
                 'service': self.datadog_service,
                 'env': self.datadog_env,
                 'enabled': bool(self.datadog_api_key)
+            },
+            'twilio': {
+                'account_sid': self.twilio_account_sid,
+                'voice_number': self.twilio_voice_number,
+                'public_base_url': self.twilio_public_base_url,
+                'media_ws_url': self.twilio_media_ws_url,
+                'validate_signatures': self.twilio_validate_signatures,
+                'demo_mode': self.twilio_demo_mode,
             },
             'metrics': {
                 'enabled': os.getenv('METRICS_ENABLED', 'true').lower() == 'true',

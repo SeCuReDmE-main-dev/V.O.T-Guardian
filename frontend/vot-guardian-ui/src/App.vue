@@ -4,6 +4,7 @@ import AudioUpload from './components/AudioUpload.vue'
 import AnalysisResults from './components/AnalysisResults.vue'
 import SystemStatus from './components/SystemStatus.vue'
 import ThemeToggle from './components/ThemeToggle.vue'
+import TwilioLivePanel from './components/TwilioLivePanel.vue'
 import { useAnalysisStore } from './stores/analysis'
 
 interface AnalysisResult {
@@ -96,6 +97,8 @@ const handleNewAnalysis = () => {
 
         <!-- Upload Component -->
         <AudioUpload @analysis-complete="handleAnalysisComplete" />
+
+        <TwilioLivePanel />
       </div>
 
       <!-- Results View -->
