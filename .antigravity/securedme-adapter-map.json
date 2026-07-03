@@ -6,6 +6,7 @@
     "name": "V.O.T Guardian",
     "path": "V.O.T-Guardian",
     "canonical_domain": "vot-guardian.securedme.ca",
+    "canonical_route": "https://securedme.ca/education/apps/vot-guardian/",
     "status": "pre-alpha"
   },
   "platform": "antigravity",
