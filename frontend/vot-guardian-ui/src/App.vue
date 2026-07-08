@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import AudioUpload from './components/AudioUpload.vue'
 import AnalysisResults from './components/AnalysisResults.vue'
 import SystemStatus from './components/SystemStatus.vue'
 import ThemeToggle from './components/ThemeToggle.vue'
 import TwilioLivePanel from './components/TwilioLivePanel.vue'
 import { useAnalysisStore } from './stores/analysis'
+import { readLatestEducationArtifactPointer } from './utils/educationArtifactReceiver'
 
 interface AnalysisResult {
   call_id: string
@@ -18,6 +19,7 @@ interface AnalysisResult {
 const analysisStore = useAnalysisStore()
 const currentView = ref<'upload' | 'results'>('upload')
 const isDark = ref(false)
+const educationPlanError = ref<string | null>(null)
 
 // Toggle dark mode
 const toggleDarkMode = () => {
@@ -40,6 +42,19 @@ const handleNewAnalysis = () => {
   analysisStore.clearResults()
   currentView.value = 'upload'
 }
+
+onMounted(() => {
+  const pointer = readLatestEducationArtifactPointer()
+  if (!pointer) {
+    return
+  }
+
+  try {
+    analysisStore.receiveAlgoQuestArtifact(pointer)
+  } catch (error) {
+    educationPlanError.value = error instanceof Error ? error.message : 'Education artifact pointer rejected.'
+  }
+})
 </script>
 
 <template>
@@ -99,6 +114,58 @@ const handleNewAnalysis = () => {
         <AudioUpload @analysis-complete="handleAnalysisComplete" />
 
         <TwilioLivePanel />
+
+        <section class="vot-glass rounded-xl p-6 border border-surface-200 dark:border-surface-700">
+          <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <h3 class="text-xl font-bold text-surface-900 dark:text-surface-100">Education Protection Plan</h3>
+              <p class="mt-2 text-sm text-surface-600 dark:text-surface-400">
+                Pointer-only handoff from AlgoQuest. V.O.T Guardian does not receive raw graph data, names, prompts, cookies, tokens, or secrets.
+              </p>
+            </div>
+            <span
+              class="inline-flex rounded-md px-3 py-1 text-xs font-bold"
+              :class="analysisStore.hasEducationPlan ? 'bg-success-100 text-success-700' : 'bg-surface-100 text-surface-600 dark:bg-surface-800 dark:text-surface-300'"
+            >
+              {{ analysisStore.hasEducationPlan ? 'Pointer accepted' : 'Waiting for pointer' }}
+            </span>
+          </div>
+
+          <div v-if="analysisStore.latestEducationPlan" class="mt-5 grid gap-4 lg:grid-cols-3">
+            <div class="rounded-lg bg-white/70 p-4 dark:bg-surface-800/70">
+              <p class="text-xs font-bold uppercase tracking-wide text-surface-500">Artifact</p>
+              <p class="mt-2 break-all text-sm font-semibold text-surface-900 dark:text-surface-100">
+                {{ analysisStore.latestEducationPlan.artifact_ref }}
+              </p>
+            </div>
+            <div class="rounded-lg bg-white/70 p-4 dark:bg-surface-800/70">
+              <p class="text-xs font-bold uppercase tracking-wide text-surface-500">Redaction</p>
+              <p class="mt-2 text-sm font-semibold text-surface-900 dark:text-surface-100">
+                {{ analysisStore.latestEducationPlan.redaction_status }}
+              </p>
+            </div>
+            <div class="rounded-lg bg-white/70 p-4 dark:bg-surface-800/70">
+              <p class="text-xs font-bold uppercase tracking-wide text-surface-500">Risk flags</p>
+              <p class="mt-2 text-sm font-semibold text-surface-900 dark:text-surface-100">
+                {{ analysisStore.latestEducationPlan.risk_flags.join(' + ') || 'none' }}
+              </p>
+            </div>
+          </div>
+
+          <ul v-if="analysisStore.latestEducationPlan" class="mt-5 space-y-2">
+            <li
+              v-for="action in analysisStore.latestEducationPlan.recommended_actions"
+              :key="action"
+              class="rounded-md bg-primary-50 px-3 py-2 text-sm font-medium text-primary-900 dark:bg-primary-900/30 dark:text-primary-200"
+            >
+              {{ action }}
+            </li>
+          </ul>
+
+          <p v-if="educationPlanError" class="mt-4 rounded-md bg-danger-50 px-3 py-2 text-sm font-semibold text-danger-700">
+            {{ educationPlanError }}
+          </p>
+        </section>
       </div>
 
       <!-- Results View -->

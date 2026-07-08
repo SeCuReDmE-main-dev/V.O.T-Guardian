@@ -2,6 +2,11 @@ import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import axios from 'axios'
 import { apiUrl, USE_MOCK } from '../utils/api'
+import {
+  receiveEducationArtifactPointer,
+  type GuardianArtifactPointerV1,
+  type GuardianProtectionPlanV1,
+} from '../utils/educationArtifactReceiver'
 
 interface AnalysisResult {
   call_id: string
@@ -15,6 +20,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
   // State
   const currentAnalysis = ref<AnalysisResult | null>(null)
   const history = ref<AnalysisResult[]>([])
+  const latestEducationPlan = ref<GuardianProtectionPlanV1 | null>(null)
   const isLoading = ref(false)
   const error = ref<string | null>(null)
 
@@ -23,6 +29,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
   const latestConfidence = computed(() => currentAnalysis.value?.confidence || 0)
   const isHumanVoice = computed(() => currentAnalysis.value?.prediction === 'HUMAN')
   const isAIVoice = computed(() => currentAnalysis.value?.prediction === 'AI')
+  const hasEducationPlan = computed(() => !!latestEducationPlan.value)
 
   // Actions
   const startAnalysis = async (audioFile?: File) => {
@@ -95,10 +102,17 @@ export const useAnalysisStore = defineStore('analysis', () => {
     return await startAnalysis(audioFile)
   }
 
+  const receiveAlgoQuestArtifact = (pointer: GuardianArtifactPointerV1) => {
+    const plan = receiveEducationArtifactPointer(pointer)
+    latestEducationPlan.value = plan
+    return plan
+  }
+
   return {
     // State
     currentAnalysis,
     history,
+    latestEducationPlan,
     isLoading,
     error,
 
@@ -107,6 +121,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
     latestConfidence,
     isHumanVoice,
     isAIVoice,
+    hasEducationPlan,
 
     // Actions
   startAnalysis,
@@ -114,5 +129,6 @@ export const useAnalysisStore = defineStore('analysis', () => {
     clearResults,
     clearHistory,
     retryAnalysis,
+    receiveAlgoQuestArtifact,
   }
 })
