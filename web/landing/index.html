@@ -5,11 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="V.O.T Guardian is a public pre-alpha SecuredMe Education landing for supervised voice-risk review, consent, Tenebris boundaries, and human review."
+      content="V.O.T Guardian is a public pre-alpha SecuredMe Education landing for supervised voice-risk review, consent, Tenebris erasure, and human review."
     />
     <title>V.O.T Guardian | SecuredMe Education</title>
     <link rel="icon" href="./assets/logo-stamp.png" />
-    <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="./styles.css?v=20260722-tenebris-refactor" />
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
@@ -41,8 +41,8 @@
           <h1>Consent-first voice review for supervised education.</h1>
           <p class="lead">
             V.O.T Guardian is a SecuredMe Education surface for teaching signal quality, consent, uncertainty,
-            evidence gaps, and human review. It supports defensive fraud-awareness learning; it is not an operational
-            detector or an autonomous authority.
+            evidence gaps, and human review. It extracts acoustic variables needed for AI-versus-human review without
+            needing to know what was said, then Tenebris purges private audio and discussion content.
           </p>
           <div class="hero-actions" aria-label="Primary actions">
             <a class="button primary" href="#review">Open analyzer preview</a>
@@ -86,8 +86,8 @@
           <p class="eyebrow">Local analyzer preview</p>
           <h2 id="review-title">A bounded review workflow, not a verdict engine.</h2>
           <p>
-            The current repo contains an upload review surface, audio feature extraction, ML predictor work, Tenebris
-            session wrapping, Twilio scaffolding, and Education pointer contracts. The landing presents these as
+            The current repo contains an upload review surface, acoustic feature extraction, ML predictor work,
+            Tenebris purge logic, Twilio scaffolding, and Education pointer contracts. The landing presents these as
             classroom review surfaces while the app continues toward alpha.
           </p>
         </div>
@@ -114,7 +114,7 @@
           <article class="panel spectrogram-panel">
             <div class="panel-top">
               <span>Feature trace</span>
-              <strong>signal quality</strong>
+              <strong>variables only</strong>
             </div>
             <div class="spectrogram" aria-hidden="true"></div>
             <div class="feature-tags" aria-label="Represented features">
@@ -137,8 +137,8 @@
               <strong>Review required</strong>
             </div>
             <p>
-              Labels stay non-accusatory: signal quality concern, uncertain voice-risk indicator, evidence gap, or
-              human review needed.
+              Labels stay non-accusatory: the model can support an AI-versus-human review, but the public artifact stays
+              bounded to uncertainty, evidence gaps, and human review.
             </p>
           </article>
         </div>
@@ -164,9 +164,9 @@
           </article>
           <article class="step-card">
             <span class="step-number">3</span>
-            <h3>Apply Tenebris boundary</h3>
-            <p>Show redaction, audit metadata, ephemeral handling intent, and a clear limit against autonomous decisions.</p>
-            <code>review artifact</code>
+            <h3>Apply Tenebris erasure</h3>
+            <p>After variable capture, erase private audio and conversation content inside the Tenebris purge window.</p>
+            <code>content purge</code>
           </article>
           <article class="step-card">
             <span class="step-number">4</span>
@@ -180,19 +180,19 @@
       <section class="section-band" id="tenebris" aria-labelledby="tenebris-title">
         <div class="section-heading">
           <p class="eyebrow">Architecture boundary</p>
-          <h2 id="tenebris-title">Tenebris is the real safety boundary; Twilio and Cactus are still being connected.</h2>
+          <h2 id="tenebris-title">Tenebris is the erasure protocol after V.O.T captures the variables it needs.</h2>
         </div>
         <div class="surface-grid">
           <article class="surface-card">
-            <h3>Tenebris protocol</h3>
+            <h3>Tenebris purge protocol</h3>
             <p>
-              Present Tenebris as the confidentiality and review boundary: redacted session state, audit metadata,
-              no raw secret display, and safe labels for classroom review.
+              Present Tenebris as the post-capture erasure layer: V.O.T keeps the acoustic variables needed for review,
+              then purges private audio and discussion content instead of retaining what was said.
             </p>
             <ul>
-              <li>Review labels remain bounded.</li>
-              <li>Audit language stays non-authoritative.</li>
-              <li>Human review is explicit.</li>
+              <li>VOT, jitter, shimmer, SNR, THD, ZCR, centroid, MFCC mean.</li>
+              <li>Private content erased after variable capture.</li>
+              <li>Target purge window: within 129 ms.</li>
             </ul>
           </article>
           <article class="surface-card">
@@ -211,7 +211,8 @@
             <h3>Planned Cactus capsule</h3>
             <p>
               Cactus belongs to the planned on-device or ephemeral inference direction. It is shown as future
-              architecture, not as already implanted in V.O.T Guardian.
+              architecture, not as already implanted in V.O.T Guardian. Its role is to help keep the sensitive context
+              short-lived around the same Tenebris purge doctrine.
             </p>
             <ul>
               <li>Short-lived review context.</li>
@@ -259,11 +260,11 @@
         <div class="boundary-grid">
           <article>
             <h3>What it is</h3>
-            <p>Defensive education, fraud-awareness learning, consent-first review, and supervised evidence discussion.</p>
+            <p>Defensive education, fraud-awareness learning, consent-first review, variable extraction, Tenebris erasure, and supervised evidence discussion.</p>
           </article>
           <article>
             <h3>What it is not</h3>
-            <p>Not biometric identification, not law enforcement, not compliance proof, not discipline, not emergency response.</p>
+            <p>Not biometric identification, not policing, not compliance proof, not discipline, not emergency response.</p>
           </article>
           <article>
             <h3>Access</h3>
@@ -291,6 +292,6 @@
       <span>Public pre-alpha. Human review required.</span>
     </footer>
 
-    <script src="./script.js"></script>
+    <script src="./script.js?v=20260722-tenebris-refactor"></script>
   </body>
 </html>
