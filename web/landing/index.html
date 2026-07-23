@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="V.O.T Guardian is a public pre-alpha SecuredMe Education landing for supervised voice-risk review, consent, Tenebris boundaries, and human review."
+    />
+    <title>V.O.T Guardian | SecuredMe Education</title>
+    <link rel="icon" href="./assets/logo-stamp.png" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <header class="site-header" aria-label="Primary navigation">
+      <a class="brand" href="https://securedme.ca/" aria-label="Return to SecuredMe home">
+        <img src="./assets/logo-stamp.png" alt="" />
+        <span>
+          <strong>V.O.T Guardian</strong>
+          <small>SecuredMe Education</small>
+        </span>
+      </a>
+      <button class="menu-button" type="button" aria-expanded="false" aria-controls="site-nav">Menu</button>
+      <nav id="site-nav" class="site-nav" aria-label="V.O.T Guardian sections">
+        <a href="https://securedme.ca/product/education/">Education</a>
+        <a href="#start">Start</a>
+        <a href="#review">Voice Review</a>
+        <a href="#tenebris">Tenebris</a>
+        <a href="#contracts">Contracts</a>
+        <a href="#boundary">Boundary</a>
+        <a class="source-link" href="https://github.com/SeCuReDmE-main-dev/V.O.T-Guardian" target="_blank" rel="noreferrer">Source</a>
+      </nav>
+    </header>
+
+    <main id="main">
+      <section class="hero section-band" id="overview">
+        <div class="hero-copy">
+          <p class="eyebrow">Tier 4 - Voice-risk review - Public pre-alpha</p>
+          <h1>Consent-first voice review for supervised education.</h1>
+          <p class="lead">
+            V.O.T Guardian is a SecuredMe Education surface for teaching signal quality, consent, uncertainty,
+            evidence gaps, and human review. It supports defensive fraud-awareness learning; it is not an operational
+            detector or an autonomous authority.
+          </p>
+          <div class="hero-actions" aria-label="Primary actions">
+            <a class="button primary" href="#review">Open analyzer preview</a>
+            <a class="button secondary" href="https://securedme.ca/product/education/">Education hub</a>
+            <a class="button ghost" href="https://github.com/SeCuReDmE-main-dev/V.O.T-Guardian" target="_blank" rel="noreferrer">View source</a>
+          </div>
+          <dl class="status-strip" aria-label="Current status">
+            <div>
+              <dt>Status</dt>
+              <dd>Pre-alpha</dd>
+            </div>
+            <div>
+              <dt>Mode</dt>
+              <dd>Supervised</dd>
+            </div>
+            <div>
+              <dt>Output</dt>
+              <dd>Review artifact</dd>
+            </div>
+            <div>
+              <dt>Authority</dt>
+              <dd>Human review</dd>
+            </div>
+          </dl>
+        </div>
+
+        <div class="hero-visual" aria-label="V.O.T Guardian preview panel">
+          <picture>
+            <source srcset="./assets/landing-vot-guardian-light.png" media="(prefers-color-scheme: light)" />
+            <img src="./assets/landing-vot-guardian-dark.png" alt="Concept preview of the V.O.T Guardian landing and analyzer panels" />
+          </picture>
+          <div class="visual-caption">
+            <span>Concept portal</span>
+            <strong>Copy below is the factual source of truth.</strong>
+          </div>
+        </div>
+      </section>
+
+      <section class="review-shell section-band" id="review" aria-labelledby="review-title">
+        <div class="section-heading">
+          <p class="eyebrow">Local analyzer preview</p>
+          <h2 id="review-title">A bounded review workflow, not a verdict engine.</h2>
+          <p>
+            The current repo contains an upload review surface, audio feature extraction, ML predictor work, Tenebris
+            session wrapping, Twilio scaffolding, and Education pointer contracts. The landing presents these as
+            classroom review surfaces while the app continues toward alpha.
+          </p>
+        </div>
+
+        <div class="analyzer-grid">
+          <article class="panel waveform-panel">
+            <div class="panel-top">
+              <span>Source audio</span>
+              <strong>review window</strong>
+            </div>
+            <div class="waveform" aria-hidden="true">
+              <span style="height: 34%"></span><span style="height: 72%"></span><span style="height: 48%"></span><span style="height: 84%"></span>
+              <span style="height: 58%"></span><span style="height: 95%"></span><span style="height: 42%"></span><span style="height: 70%"></span>
+              <span style="height: 36%"></span><span style="height: 88%"></span><span style="height: 54%"></span><span style="height: 76%"></span>
+              <span style="height: 44%"></span><span style="height: 64%"></span><span style="height: 90%"></span><span style="height: 52%"></span>
+            </div>
+            <ul class="metric-row">
+              <li><b>WAV</b><span>MP3 / OGG / OPUS</span></li>
+              <li><b>10 MB</b><span>visible UI limit</span></li>
+              <li><b>16 kHz</b><span>recommended sample rate</span></li>
+            </ul>
+          </article>
+
+          <article class="panel spectrogram-panel">
+            <div class="panel-top">
+              <span>Feature trace</span>
+              <strong>signal quality</strong>
+            </div>
+            <div class="spectrogram" aria-hidden="true"></div>
+            <div class="feature-tags" aria-label="Represented features">
+              <span>VOT</span>
+              <span>jitter</span>
+              <span>shimmer</span>
+              <span>SNR</span>
+              <span>THD</span>
+              <span>MFCC mean</span>
+            </div>
+          </article>
+
+          <article class="panel risk-panel">
+            <div class="panel-top">
+              <span>Review result</span>
+              <strong>human required</strong>
+            </div>
+            <div class="risk-meter" aria-hidden="true">
+              <div></div>
+              <strong>Review required</strong>
+            </div>
+            <p>
+              Labels stay non-accusatory: signal quality concern, uncertain voice-risk indicator, evidence gap, or
+              human review needed.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section-band" id="start" aria-labelledby="start-title">
+        <div class="section-heading compact">
+          <p class="eyebrow">Start path</p>
+          <h2 id="start-title">Four steps for the public pre-alpha story.</h2>
+        </div>
+        <div class="step-grid">
+          <article class="step-card">
+            <span class="step-number">1</span>
+            <h3>Prepare a local review</h3>
+            <p>Use a supervised, consent-first classroom context. No private audio or real personal data belongs in examples.</p>
+            <code>choose audio file</code>
+          </article>
+          <article class="step-card">
+            <span class="step-number">2</span>
+            <h3>Inspect signal quality</h3>
+            <p>Represent visible features such as VOT, jitter, shimmer, SNR, THD, zero crossing rate, and MFCC mean.</p>
+            <code>POST /analyze</code>
+          </article>
+          <article class="step-card">
+            <span class="step-number">3</span>
+            <h3>Apply Tenebris boundary</h3>
+            <p>Show redaction, audit metadata, ephemeral handling intent, and a clear limit against autonomous decisions.</p>
+            <code>review artifact</code>
+          </article>
+          <article class="step-card">
+            <span class="step-number">4</span>
+            <h3>Route to human review</h3>
+            <p>Export only bounded findings for supervised interpretation. The tool supports review; it does not decide.</p>
+            <code>human review needed</code>
+          </article>
+        </div>
+      </section>
+
+      <section class="section-band" id="tenebris" aria-labelledby="tenebris-title">
+        <div class="section-heading">
+          <p class="eyebrow">Architecture boundary</p>
+          <h2 id="tenebris-title">Tenebris is the real safety boundary; Twilio and Cactus are still being connected.</h2>
+        </div>
+        <div class="surface-grid">
+          <article class="surface-card">
+            <h3>Tenebris protocol</h3>
+            <p>
+              Present Tenebris as the confidentiality and review boundary: redacted session state, audit metadata,
+              no raw secret display, and safe labels for classroom review.
+            </p>
+            <ul>
+              <li>Review labels remain bounded.</li>
+              <li>Audit language stays non-authoritative.</li>
+              <li>Human review is explicit.</li>
+            </ul>
+          </article>
+          <article class="surface-card">
+            <h3>Twilio lane under implementation</h3>
+            <p>
+              The repo contains Twilio routes, runbooks, tests, and a live panel shape. The public page must call it a
+              consent-first lane under implementation, not a finished live call pipeline.
+            </p>
+            <ul>
+              <li><code>POST /twilio/voice</code></li>
+              <li><code>WS /twilio/media</code></li>
+              <li><code>GET /api/v1/twilio/sessions/&lt;id&gt;</code></li>
+            </ul>
+          </article>
+          <article class="surface-card">
+            <h3>Planned Cactus capsule</h3>
+            <p>
+              Cactus belongs to the planned on-device or ephemeral inference direction. It is shown as future
+              architecture, not as already implanted in V.O.T Guardian.
+            </p>
+            <ul>
+              <li>Short-lived review context.</li>
+              <li>Tenebris purge boundary.</li>
+              <li>No device-wide surveillance claim.</li>
+            </ul>
+          </article>
+        </div>
+      </section>
+
+      <section class="section-band" id="contracts" aria-labelledby="contracts-title">
+        <div class="section-heading">
+          <p class="eyebrow">Education contract</p>
+          <h2 id="contracts-title">Pointer-only import from the Education suite.</h2>
+          <p>
+            The frontend includes a contract receiver for suite artifacts. The design shows it as a boundary panel, not
+            a hidden data bridge.
+          </p>
+        </div>
+        <div class="contract-panel">
+          <div>
+            <h3>Accepted pointer schema</h3>
+            <code>securedme.education.artifact-pointer.v1</code>
+            <code>target_app: vot-guardian</code>
+            <code>redaction_status: pointer-only</code>
+          </div>
+          <div>
+            <h3>Protection plan</h3>
+            <code>securedme.education.guardian-protection-plan.v1</code>
+            <code>raw_payload_embedded: false</code>
+            <code>raw_secret_stored: false</code>
+          </div>
+          <div>
+            <h3>Review actions</h3>
+            <p>Run secret-handling checks, keep learner identity redacted, and export aggregate-only classroom findings.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section-band" id="boundary" aria-labelledby="boundary-title">
+        <div class="section-heading compact">
+          <p class="eyebrow">Safety and license</p>
+          <h2 id="boundary-title">Clear boundaries before the alpha coding sprint.</h2>
+        </div>
+        <div class="boundary-grid">
+          <article>
+            <h3>What it is</h3>
+            <p>Defensive education, fraud-awareness learning, consent-first review, and supervised evidence discussion.</p>
+          </article>
+          <article>
+            <h3>What it is not</h3>
+            <p>Not biometric identification, not law enforcement, not compliance proof, not discipline, not emergency response.</p>
+          </article>
+          <article>
+            <h3>Access</h3>
+            <p>Keyboard focus, reduced motion, calm mode, and high-contrast utility controls are part of the public surface.</p>
+          </article>
+          <article>
+            <h3>License</h3>
+            <p>Secured Educational Cybersecurity License 2.0, framed for defensive education and supervised review.</p>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <aside class="utility-dock" aria-label="Site utilities">
+      <button type="button" data-lang-toggle>Language: EN</button>
+      <button type="button" data-theme-toggle>Theme: Night</button>
+      <button type="button" data-access-toggle>Access</button>
+      <a href="https://securedme.ca/contact/" class="support-button">Support SecuredMe</a>
+    </aside>
+
+    <footer class="site-footer">
+      <a href="https://securedme.ca/">SecuredMe</a>
+      <a href="https://securedme.ca/product/education/">Education hub</a>
+      <a href="https://github.com/SeCuReDmE-main-dev/V.O.T-Guardian" target="_blank" rel="noreferrer">GitHub source</a>
+      <span>Public pre-alpha. Human review required.</span>
+    </footer>
+
+    <script src="./script.js"></script>
+  </body>
+</html>
