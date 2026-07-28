@@ -8,7 +8,7 @@
 [![Issues](https://img.shields.io/github/issues/SeCuReDmE-main-dev/V.O.T-Guardian?color=111722)](https://github.com/SeCuReDmE-main-dev/V.O.T-Guardian/issues)
 [![Milestones](https://img.shields.io/badge/milestones-M0--M7-D7263D)](https://github.com/SeCuReDmE-main-dev/V.O.T-Guardian/milestones)
 [![Project Board](https://img.shields.io/badge/project-kanban-5484ED)](https://github.com/users/SeCuReDmE-main-dev/projects/3)
-[![Branch](https://img.shields.io/badge/branch-master-0E7490)](https://github.com/SeCuReDmE-main-dev/V.O.T-Guardian/tree/master)
+[![Branch](https://img.shields.io/badge/branch-main-0E7490)](https://github.com/SeCuReDmE-main-dev/V.O.T-Guardian/tree/main)
 <!-- SECUREDME-SUITE-BADGES:END -->
 
 <!-- SECUREDME-STARTUP-SUPPORT:START -->
