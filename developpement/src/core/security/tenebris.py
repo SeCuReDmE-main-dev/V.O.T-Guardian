@@ -217,33 +217,48 @@ class TenebrisProtocol:
                     self._active_sessions[session_id][key] = None
 
     async def _log_audit_event(self, event_type: str, metadata: Dict[str, Any]):
-        """Log audit event to Datadog (immutable forensic trail)."""
+        """Emit a bounded redacted audit event off the event loop."""
         try:
+            metadata_json = json.dumps(
+                metadata,
+                sort_keys=True,
+                default=str,
+                separators=(',', ':'),
+            )
             # Create immutable audit log
             audit_entry = {
                 'timestamp': time.time(),
                 'event_type': event_type,
                 'service': 'vot-guardian-tenebris',
-                'metadata': metadata,
+                'metadata': {
+                    'field_count': len(metadata),
+                    'sha256': hashlib.sha256(
+                        metadata_json.encode('utf-8')
+                    ).hexdigest(),
+                },
                 'compliance': self.config.compliance_mode,
                 'audit_hash': self._compute_audit_hash(event_type, metadata)
             }
 
-            # Send to Datadog (asynchronous, non-blocking)
+            # Bound the synchronous SDK call and keep it off the event loop.
             if datadog_api:
-                datadog_api.Event.create(
-                    title=f"Tenebris Protocol: {event_type}",
-                    text=json.dumps(audit_entry, indent=2),
-                    tags=[
-                        'protocol:tenebris',
-                        'compliance:loi25',
-                        f'event:{event_type.lower()}',
-                        'service:vot-guardian'
-                    ],
-                    alert_type='info'
+                await asyncio.wait_for(
+                    asyncio.to_thread(
+                        datadog_api.Event.create,
+                        title=f"Tenebris Protocol: {event_type}",
+                        text=json.dumps(audit_entry, separators=(',', ':')),
+                        tags=[
+                            'protocol:tenebris',
+                            'compliance:loi25',
+                            f'event:{event_type.lower()}',
+                            'service:vot-guardian'
+                        ],
+                        alert_type='info'
+                    ),
+                    timeout=0.25,
                 )
 
-        except Exception as e:
+        except (Exception, asyncio.TimeoutError) as e:
             self.logger.error(f"Failed to log audit event: {e}")
             # Continue execution - audit logging failure shouldn't break the protocol
 

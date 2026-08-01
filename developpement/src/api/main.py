@@ -16,6 +16,7 @@ Monitoring: Datadog integration
 import os
 import json
 import asyncio
+import hashlib
 import importlib
 import logging
 import time
@@ -93,6 +94,8 @@ audio_processor = AudioProcessor()
 ml_predictor = MLPredictor()
 db_client = PostgreSQLClient()
 twilio_gateway = TwilioGateway()
+
+_telemetry_tasks: set[asyncio.Task[Any]] = set()
 
 # Configure logging
 logging.basicConfig(
@@ -194,10 +197,25 @@ def _record_metrics(
     features: Dict[str, float],
     sandbox_id: str,
 ) -> None:
-    """Emit monitoring metrics; best-effort only."""
+    """Schedule redacted monitoring metrics without blocking the response."""
+    telemetry_id = _opaque_telemetry_id(response_payload['call_id'])
+    _schedule_telemetry(
+        _emit_analysis_metrics,
+        response_payload.copy(),
+        features.copy(),
+        telemetry_id,
+    )
+
+
+def _emit_analysis_metrics(
+    response_payload: Dict[str, Any],
+    features: Dict[str, float],
+    telemetry_id: str,
+) -> None:
+    """Perform fail-open Datadog calls on a background thread."""
     try:
         datadog.record_analysis_metrics(
-            call_id=response_payload['call_id'],
+            call_id=telemetry_id,
             prediction=response_payload['prediction'],
             confidence=response_payload['confidence'],
             latency_ms=response_payload['processing_time_ms'],
@@ -206,14 +224,14 @@ def _record_metrics(
         snr_db = features.get('snr_db', 0.0)
         thd_percent = features.get('thd_percent', 0.0)
         datadog.record_audio_quality_metrics(
-            call_id=response_payload['call_id'],
+            call_id=telemetry_id,
             snr_db=snr_db,
             thd_percent=thd_percent,
             clipping_ratio=features.get('zero_crossing_rate', 0.0),
         )
 
         datadog.record_tenebris_metrics(
-            call_id=response_payload['call_id'],
+            call_id=telemetry_id,
             destruction_time_ms=response_payload.get(
                 'tenebris_destruction_time_ms',
                 0.0,
@@ -224,9 +242,33 @@ def _record_metrics(
     except Exception as metrics_error:
         logger.debug(
             "Metrics emission failed for %s: %s",
-            sandbox_id,
+            telemetry_id,
             metrics_error,
         )
+
+
+def _opaque_telemetry_id(value: Any) -> str:
+    """Return a stable non-reversible identifier for telemetry tags."""
+    return hashlib.sha256(str(value).encode('utf-8')).hexdigest()[:16]
+
+
+def _schedule_telemetry(callback, *args, **kwargs) -> bool:
+    """Queue one background emission and fail open if no loop is active."""
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        return False
+
+    async def runner() -> None:
+        try:
+            await asyncio.to_thread(callback, *args, **kwargs)
+        except Exception as exc:  # pragma: no cover - defensive fail-open
+            logger.debug("Background telemetry failed: %s", exc)
+
+    task = loop.create_task(runner(), name='vot-datadog-background')
+    _telemetry_tasks.add(task)
+    task.add_done_callback(_telemetry_tasks.discard)
+    return True
 
 
 async def _persist_twilio_event(
@@ -261,14 +303,16 @@ def _record_twilio_metric(
     session_id: str,
 ) -> None:
     """Emit Twilio-specific metrics without blocking webhook responses."""
-    try:
+    telemetry_id = _opaque_telemetry_id(session_id)
+
+    def emit() -> None:
         datadog.record_metric(
             metric_name,
             value,
-            {"session_id": session_id, "surface": "twilio"},
+            {"reference": telemetry_id, "surface": "twilio"},
         )
-    except Exception as metrics_error:  # pragma: no cover - best effort only
-        logger.debug("Twilio metric emission failed: %s", metrics_error)
+
+    _schedule_telemetry(emit)
 
 
 def _build_response_payload(

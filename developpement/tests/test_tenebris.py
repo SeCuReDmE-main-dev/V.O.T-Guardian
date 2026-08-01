@@ -188,8 +188,11 @@ async def test_key_revocation_violation_records_diagnostics(
     ]
     assert failure_events
     metadata = failure_events[0].get("metadata", {})
-    assert metadata.get("call_id") == "call-unauthorized"
-    assert "unauthorized" in metadata.get("error", "")
+    assert metadata.get("field_count") == 4
+    assert len(metadata.get("sha256", "")) == 64
+    assert "call_id" not in metadata
+    assert "error" not in metadata
+    assert "call-unauthorized" not in json.dumps(failure_events[0])
 
     assert any(
         "Unauthorized key access" in record.message
