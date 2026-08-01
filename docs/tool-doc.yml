@@ -1,0 +1,36 @@
+schema: securedme.tool-doc.v2
+slug: vot-guardian
+title: V.O.T. Guardian
+version: pre-alpha
+status: public-preview
+license: LicenseRef-SECL-2.0
+summary: A defensive cybersecurity training surface for transparent, human-reviewed
+  threat reasoning.
+identity:
+  logo: web/landing/assets/logo-stamp.png
+  family: V.O.T. Guardian
+runtime:
+  type: browser-app
+  availability: verified
+  public_url: https://vot-guardian.securedme.ca
+source:
+  repository: https://github.com/SeCuReDmE-main-dev/V.O.T-Guardian
+  issues: https://github.com/SeCuReDmE-main-dev/V.O.T-Guardian/issues
+documentation:
+  public_root: docs/public
+  source_language: en
+  languages:
+  - en
+  - fr
+  - es
+commands:
+  install:
+  - Consult README.md and the frontend package manifest
+  start:
+  - Start the documented supervised frontend workflow
+  test:
+  - Run the repository test suite before accepting a change
+boundaries:
+  authority: V.O.T. Guardian must not be used for attack, surveillance, autonomous
+    accusation, or unsupervised enforcement.
+  human_review_required: true
