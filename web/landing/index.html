@@ -69,14 +69,39 @@
           </dl>
         </div>
 
-        <div class="hero-visual" aria-label="V.O.T Guardian preview panel">
-          <picture>
-            <source srcset="./assets/landing-vot-guardian-light.png" media="(prefers-color-scheme: light)" />
-            <img src="./assets/landing-vot-guardian-dark.png" alt="Concept preview of the V.O.T Guardian landing and analyzer panels" />
-          </picture>
-          <div class="visual-caption">
-            <span>Concept portal</span>
-            <strong>Copy below is the factual source of truth.</strong>
+        <div class="hero-visual" aria-label="V.O.T Guardian supervised review console">
+          <div class="review-console">
+            <div class="review-console-head">
+              <div>
+                <span>SUPERVISED AUDIO REVIEW</span>
+                <strong>Operator decision surface</strong>
+              </div>
+              <span class="offline-state">LOCAL ANALYSIS REQUIRED</span>
+            </div>
+
+            <div class="review-wave" aria-label="Illustrative waveform, no audio loaded">
+              <span style="height: 28%"></span><span style="height: 68%"></span><span style="height: 44%"></span><span style="height: 82%"></span>
+              <span style="height: 52%"></span><span style="height: 91%"></span><span style="height: 38%"></span><span style="height: 72%"></span>
+              <span style="height: 35%"></span><span style="height: 86%"></span><span style="height: 49%"></span><span style="height: 77%"></span>
+              <span style="height: 42%"></span><span style="height: 63%"></span><span style="height: 88%"></span><span style="height: 55%"></span>
+              <span style="height: 31%"></span><span style="height: 74%"></span><span style="height: 46%"></span><span style="height: 66%"></span>
+            </div>
+
+            <div class="review-metrics" aria-label="Unresolved example signals">
+              <div><span>Voice probability</span><strong>0.64</strong><small>candidate only</small></div>
+              <div><span>Contradiction</span><strong>0.31</strong><small>review required</small></div>
+              <div><span>Provenance</span><strong>0.82</strong><small>source attached</small></div>
+            </div>
+
+            <fieldset class="operator-decision" data-decision-surface>
+              <legend>Human disposition</legend>
+              <div>
+                <button type="button" data-decision="admit">Admit for review</button>
+                <button type="button" data-decision="suspend">Suspend</button>
+                <button type="button" data-decision="reject">Reject artifact</button>
+              </div>
+              <p aria-live="polite" data-decision-status>No decision recorded. This browser control does not analyze audio.</p>
+            </fieldset>
           </div>
         </div>
       </section>

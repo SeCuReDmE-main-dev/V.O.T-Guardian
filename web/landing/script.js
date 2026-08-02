@@ -4,6 +4,8 @@ const siteNav = document.querySelector("#site-nav");
 const themeToggle = document.querySelector("[data-theme-toggle]");
 const languageToggle = document.querySelector("[data-lang-toggle]");
 const accessToggle = document.querySelector("[data-access-toggle]");
+const decisionSurface = document.querySelector("[data-decision-surface]");
+const decisionStatus = document.querySelector("[data-decision-status]");
 
 function setTheme(theme) {
   root.dataset.theme = theme;
@@ -42,4 +44,24 @@ languageToggle?.addEventListener("click", () => {
 accessToggle?.addEventListener("click", () => {
   document.body.classList.toggle("access-mode");
   accessToggle.textContent = document.body.classList.contains("access-mode") ? "Access: Calm" : "Access";
+});
+
+decisionSurface?.addEventListener("click", (event) => {
+  const button = event.target instanceof HTMLButtonElement
+    ? event.target.closest("[data-decision]")
+    : null;
+  if (!(button instanceof HTMLButtonElement) || !decisionStatus) {
+    return;
+  }
+
+  decisionSurface.querySelectorAll("[data-decision]").forEach((candidate) => {
+    candidate.setAttribute("aria-pressed", String(candidate === button));
+  });
+
+  const labels = {
+    admit: "Admit selected as an operator draft. Local evidence and human review are still required.",
+    suspend: "Suspend selected. The unresolved signal remains open and no verdict is produced.",
+    reject: "Reject selected for this artifact. The browser control records no scientific claim."
+  };
+  decisionStatus.textContent = labels[button.dataset.decision] || "No decision recorded.";
 });

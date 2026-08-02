@@ -332,30 +332,152 @@ h3 {
   box-shadow: var(--shadow);
 }
 
-.hero-visual img {
-  display: block;
-  width: 100%;
-  height: auto;
+.review-console {
   min-height: 32rem;
-  object-fit: cover;
-  object-position: top center;
+  padding: clamp(1rem, 2.4vw, 1.5rem);
+  background:
+    linear-gradient(rgba(37, 198, 255, 0.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(37, 198, 255, 0.055) 1px, transparent 1px),
+    var(--panel-strong);
+  background-size: 30px 30px;
 }
 
-.visual-caption {
-  position: absolute;
-  left: 1rem;
-  right: 1rem;
-  bottom: 1rem;
+.review-console-head,
+.review-metrics,
+.operator-decision > div {
   display: flex;
+}
+
+.review-console-head {
+  align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  padding: 0.75rem 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.review-console-head span,
+.review-console-head strong {
+  display: block;
+}
+
+.review-console-head span,
+.offline-state {
+  color: var(--cyan);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.07em;
+}
+
+.offline-state {
+  padding: 0.45rem 0.6rem;
+  border: 1px solid color-mix(in srgb, var(--cyan) 55%, transparent);
+  border-radius: 0.35rem;
+  background: color-mix(in srgb, var(--cyan) 9%, transparent);
+  text-align: center;
+}
+
+.review-wave {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(3px, 0.6vw, 7px);
+  height: 9rem;
+  margin-block: 1rem;
+  padding: 1rem;
   border: 1px solid var(--line);
-  border-radius: 0.6rem;
-  background: rgba(3, 7, 19, 0.8);
-  color: white;
-  backdrop-filter: blur(14px);
-  font-size: 0.85rem;
+  border-radius: 0.55rem;
+  background: rgba(2, 7, 18, 0.68);
+}
+
+.review-wave span {
+  flex: 1 1 0;
+  max-width: 0.65rem;
+  min-width: 2px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, var(--cyan), var(--violet));
+}
+
+.review-metrics {
+  gap: 0.65rem;
+}
+
+.review-metrics > div {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  background: rgba(6, 17, 37, 0.72);
+}
+
+.review-metrics span,
+.review-metrics strong,
+.review-metrics small {
+  display: block;
+}
+
+.review-metrics span,
+.review-metrics small {
+  color: var(--muted);
+}
+
+.review-metrics span {
+  font-size: 0.7rem;
+}
+
+.review-metrics strong {
+  font-size: 1.35rem;
+}
+
+.review-metrics small {
+  font-size: 0.68rem;
+}
+
+.operator-decision {
+  margin: 1rem 0 0;
+  padding: 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: 0.55rem;
+}
+
+.operator-decision legend {
+  padding-inline: 0.4rem;
+  color: var(--gold);
+  font-size: 0.74rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.operator-decision > div {
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.operator-decision button {
+  min-height: 2.5rem;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 0.45rem;
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.operator-decision button:hover,
+.operator-decision button[aria-pressed="true"] {
+  border-color: var(--cyan);
+  background: color-mix(in srgb, var(--cyan) 14%, var(--panel));
+}
+
+.operator-decision p {
+  margin: 0.75rem 0 0;
+  color: var(--muted);
+  font-size: 0.72rem;
 }
 
 .section-heading {
@@ -614,10 +736,6 @@ h3 {
     font-size: clamp(3.4rem, 10vw, 6rem);
   }
 
-  .hero-visual img {
-    max-height: 48rem;
-  }
-
   .boundary-grid,
   .step-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -679,16 +797,14 @@ h3 {
     grid-template-columns: 1fr;
   }
 
-  .hero-visual img {
-    min-height: 22rem;
+  .review-console-head,
+  .review-metrics {
+    align-items: stretch;
+    flex-direction: column;
   }
 
-  .visual-caption {
-    position: static;
-    border-left: 0;
-    border-right: 0;
-    border-bottom: 0;
-    border-radius: 0;
+  .offline-state {
+    align-self: flex-start;
   }
 
   .utility-dock {
