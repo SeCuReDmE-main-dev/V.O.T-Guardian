@@ -138,7 +138,7 @@ def pipeline_client(monkeypatch):
     }
 
 
-def test_pipeline_e2e_persists_features(pipeline_client):
+def test_pipeline_e2e_does_not_persist_voice_features(pipeline_client):
     context = pipeline_client
     audio_bytes = _build_audio()
 
@@ -155,7 +155,7 @@ def test_pipeline_e2e_persists_features(pipeline_client):
     assert payload["confidence"] == pytest.approx(0.88, abs=1e-6)
     features_blob = context["db_client"].last_analysis.get("features")
     stored_features = json.loads(features_blob)
-    assert stored_features == FEATURES
+    assert stored_features == {}
     assert context["ml_predictor"].invocations == 1
     assert context["ml_predictor"].seen_features == FEATURES
     last_audit = context["db_client"].audit_events[-1]

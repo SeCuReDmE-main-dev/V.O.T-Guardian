@@ -85,24 +85,12 @@ class AudioProcessor:
 
         except Exception as e:
             self.logger.error(f"Error processing audio: {e}")
-            # Return default values
-            return {
-                'vot': 0.4,
-                'jitter': 0.05,
-                'shimmer': 0.1,
-                'snr_db': 20.0,
-                'thd_percent': 1.0,
-                'zero_crossing_rate': 0.1,
-                'spectral_centroid': 1000.0,
-                'mfcc_mean': 0.0
-            }
+            raise RuntimeError("audio feature extraction failed") from e
 
     def _bytes_to_array(self, audio_data: bytes) -> Tuple[np.ndarray, int]:
         """Convert audio bytes to numpy array."""
         if not sf:
-            # Fallback for when soundfile is not available
-            self.logger.warning("Using fallback audio conversion")
-            return np.random.randn(8000), 16000
+            raise RuntimeError("soundfile runtime is unavailable")
 
         try:
             # Read audio data
@@ -120,8 +108,7 @@ class AudioProcessor:
 
         except Exception as e:
             self.logger.error(f"Error converting audio bytes: {e}")
-            # Return dummy data
-            return np.random.randn(int(self.config.sample_rate * 1)), self.config.sample_rate
+            raise RuntimeError("audio decoding failed") from e
 
     def _extract_vot(self, audio: np.ndarray, sample_rate: int) -> float:
         """Extract Voice Onset Time (VOT)."""

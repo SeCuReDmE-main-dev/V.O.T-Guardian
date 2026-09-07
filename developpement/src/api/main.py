@@ -73,7 +73,7 @@ from ..config.settings import Settings
 
 # Initialize Flask app
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.getenv('API_SECRET_KEY', 'dev-secret-key')
+app.config['SECRET_KEY'] = os.getenv('API_SECRET_KEY') or None
 sock = Sock(app) if Sock is not None else None
 
 # Enable CORS for frontend (Vite dev server on port 5173)
@@ -152,10 +152,10 @@ async def _persist_analysis_result(
     """Store analysis output and audit trail; failures are logged only."""
     try:
         await _ensure_db_connection()
-        # Store features as JSON text to satisfy asyncpg's JSONB parameter
-        # handling. asyncpg expects JSONB parameters as strings instead of
-        # raw dicts.
-        features_payload = json.dumps(features)
+        # Voice-derived feature values are intentionally not persisted.  The
+        # legacy JSONB column receives an empty object until its schema can be
+        # removed by a dedicated migration.
+        features_payload = "{}"
         await db_client.store_analysis_result({
             'call_id': response_payload['call_id'],
             'prediction': response_payload['prediction'],
@@ -168,7 +168,8 @@ async def _persist_analysis_result(
             'prediction': response_payload['prediction'],
             'confidence': response_payload['confidence'],
             'model_version': response_payload.get('model_version'),
-            'features': features,
+            'feature_names': sorted(features),
+            'voice_features_retained': False,
         })
 
         await db_client.log_audit_event(
@@ -550,15 +551,11 @@ def unsupported_media(e):
 
 @app.route('/api/v1/analyze', methods=['POST'])
 def analyze_mock():
-    """Mock analysis endpoint for the simulated pipeline step.
-
-    Returns a fixed JSON payload to unblock frontend integration.
-    """
+    """Retained compatibility route that now fails closed."""
     return jsonify({
-        "is_ai_voice": True,
-        "score": 0.98,
-        "message": "Analysis complete (simulated)",
-    }), 200
+        "error": "CAPABILITY_DISABLED",
+        "message": "Simulated voice classifications are disabled. Configure the trained review runtime.",
+    }), 503
 
 
 if __name__ == '__main__':

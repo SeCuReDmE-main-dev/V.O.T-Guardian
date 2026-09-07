@@ -1,0 +1,170 @@
+{
+  "schema": "securedme.webmcp.fixtures.v1",
+  "tools": {
+    "vot_inspect_service_health": {
+      "validInput": {},
+      "invalidInput": {
+        "unexpected": true
+      },
+      "expectedStatus": "completed"
+    },
+    "vot_inspect_audio_metadata": {
+      "validInput": {
+        "assetRef": "fixture",
+        "approval": {
+          "id": "approval:fixture",
+          "humanConfirmed": true
+        },
+        "idempotencyKey": "fixture-idempotency-0001"
+      },
+      "invalidInput": {
+        "unexpected": true
+      },
+      "expectedStatus": "unavailable",
+      "unauthorizedInput": {
+        "assetRef": "fixture",
+        "idempotencyKey": "fixture-idempotency-0001"
+      },
+      "expectedUnauthorizedStatus": "unavailable"
+    },
+    "vot_extract_voice_review_features": {
+      "validInput": {
+        "assetRef": "fixture",
+        "approval": {
+          "id": "approval:fixture",
+          "humanConfirmed": true
+        },
+        "idempotencyKey": "fixture-idempotency-0001"
+      },
+      "invalidInput": {
+        "unexpected": true
+      },
+      "expectedStatus": "unavailable",
+      "unauthorizedInput": {
+        "assetRef": "fixture",
+        "idempotencyKey": "fixture-idempotency-0001"
+      },
+      "expectedUnauthorizedStatus": "unavailable"
+    },
+    "vot_stage_voice_risk_review": {
+      "validInput": {
+        "featureReceiptRef": "fixture"
+      },
+      "invalidInput": {
+        "unexpected": true
+      },
+      "expectedStatus": "staged"
+    },
+    "vot_inspect_model_readiness": {
+      "validInput": {},
+      "invalidInput": {
+        "unexpected": true
+      },
+      "expectedStatus": "completed"
+    },
+    "vot_prepare_twilio_consent_response": {
+      "validInput": {
+        "sessionRef": "fixture"
+      },
+      "invalidInput": {
+        "unexpected": true
+      },
+      "expectedStatus": "staged"
+    },
+    "vot_replay_twilio_media_event": {
+      "validInput": {
+        "fixtureRef": "fixture",
+        "approval": {
+          "id": "approval:fixture",
+          "humanConfirmed": true
+        },
+        "idempotencyKey": "fixture-idempotency-0001"
+      },
+      "invalidInput": {
+        "unexpected": true
+      },
+      "expectedStatus": "unavailable",
+      "unauthorizedInput": {
+        "fixtureRef": "fixture",
+        "idempotencyKey": "fixture-idempotency-0001"
+      },
+      "expectedUnauthorizedStatus": "unavailable"
+    },
+    "vot_inspect_twilio_review_session": {
+      "validInput": {
+        "sessionRef": "fixture"
+      },
+      "invalidInput": {
+        "unexpected": true
+      },
+      "expectedStatus": "completed"
+    },
+    "vot_validate_education_artifact_pointer": {
+      "validInput": {
+        "artifactRef": "fixture"
+      },
+      "invalidInput": {
+        "unexpected": true
+      },
+      "expectedStatus": "completed"
+    },
+    "vot_build_guardian_protection_plan": {
+      "validInput": {
+        "scenario": "fixture"
+      },
+      "invalidInput": {
+        "unexpected": true
+      },
+      "expectedStatus": "staged"
+    },
+    "securedme_companion_context": {
+      "validInput": {},
+      "invalidInput": {
+        "unexpected": true
+      },
+      "expectedStatus": "completed"
+    },
+    "securedme_qbit_plan_handoff": {
+      "validInput": {
+        "missionRef": "fixture",
+        "summary": "fixture"
+      },
+      "invalidInput": {
+        "unexpected": true
+      },
+      "expectedStatus": "staged"
+    }
+  },
+  "journeys": [
+    [
+      "securedme_companion_context",
+      "vot_inspect_service_health",
+      "securedme_qbit_plan_handoff"
+    ],
+    [
+      "securedme_companion_context",
+      "vot_inspect_audio_metadata",
+      "securedme_qbit_plan_handoff"
+    ],
+    [
+      "securedme_companion_context",
+      "vot_extract_voice_review_features",
+      "securedme_qbit_plan_handoff"
+    ],
+    [
+      "securedme_companion_context",
+      "vot_stage_voice_risk_review",
+      "securedme_qbit_plan_handoff"
+    ],
+    [
+      "securedme_companion_context",
+      "vot_inspect_model_readiness",
+      "securedme_qbit_plan_handoff"
+    ],
+    [
+      "securedme_companion_context",
+      "vot_prepare_twilio_consent_response",
+      "securedme_qbit_plan_handoff"
+    ]
+  ]
+}

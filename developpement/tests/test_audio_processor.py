@@ -80,7 +80,7 @@ def test_process_audio_data_nominal(monkeypatch):
         assert result[key] == pytest.approx(expected_value, rel=1e-6)
 
 
-def test_process_audio_data_fallback(monkeypatch):
+def test_process_audio_data_fails_closed(monkeypatch):
     processor = AudioProcessor()
 
     def raising_bytes_to_array(_):
@@ -95,16 +95,6 @@ def test_process_audio_data_fallback(monkeypatch):
 
     monkeypatch.setattr(processor.logger, "error", fake_error)
 
-    result = processor.process_audio_data(b"")
-
-    assert result == {
-        "vot": 0.4,
-        "jitter": 0.05,
-        "shimmer": 0.1,
-        "snr_db": 20.0,
-        "thd_percent": 1.0,
-        "zero_crossing_rate": 0.1,
-        "spectral_centroid": 1000.0,
-        "mfcc_mean": 0.0,
-    }
+    with pytest.raises(RuntimeError, match="audio feature extraction failed"):
+        processor.process_audio_data(b"")
     assert "Error processing audio" in logged["message"]

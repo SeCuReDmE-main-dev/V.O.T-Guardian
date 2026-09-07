@@ -1,0 +1,377 @@
+{
+  "schema": "securedme.webmcp.v1",
+  "product": {
+    "slug": "vot-guardian",
+    "canonicalStateOwner": "algoquest"
+  },
+  "slug": "vot-guardian",
+  "canonicalStateOwner": "algoquest",
+  "tools": [
+    {
+      "name": "vot_inspect_service_health",
+      "mode": "READ",
+      "effect": "READ",
+      "description": "Inspect configured capabilities without returning secrets.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object"
+      },
+      "availability": "available",
+      "handler": {
+        "kind": "python",
+        "module": "src.webmcp"
+      }
+    },
+    {
+      "name": "vot_inspect_audio_metadata",
+      "mode": "EXECUTE",
+      "effect": "EXECUTE",
+      "description": "Inspect metadata for an explicitly admitted ephemeral audio asset.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "assetRef": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "approval": {
+            "type": "object"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          }
+        },
+        "required": [
+          "assetRef",
+          "approval",
+          "idempotencyKey"
+        ],
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object"
+      },
+      "availability": "unavailable",
+      "handler": {
+        "kind": "unavailable",
+        "module": "src.webmcp"
+      },
+      "unavailableReason": "Admitted asset resolver and verified local runtime are not configured."
+    },
+    {
+      "name": "vot_extract_voice_review_features",
+      "mode": "EXECUTE",
+      "effect": "EXECUTE",
+      "description": "Extract bounded review features from an admitted asset without retention.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "assetRef": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "approval": {
+            "type": "object"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          }
+        },
+        "required": [
+          "assetRef",
+          "approval",
+          "idempotencyKey"
+        ],
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object"
+      },
+      "availability": "unavailable",
+      "handler": {
+        "kind": "unavailable",
+        "module": "src.webmcp"
+      },
+      "unavailableReason": "Admitted asset resolver and verified local runtime are not configured."
+    },
+    {
+      "name": "vot_stage_voice_risk_review",
+      "mode": "STAGE",
+      "effect": "STAGE",
+      "description": "Stage a non-accusatory human review from verified feature output.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "featureReceiptRef": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          }
+        },
+        "required": [
+          "featureReceiptRef"
+        ],
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object"
+      },
+      "availability": "available",
+      "handler": {
+        "kind": "python",
+        "module": "src.webmcp"
+      }
+    },
+    {
+      "name": "vot_inspect_model_readiness",
+      "mode": "READ",
+      "effect": "READ",
+      "description": "Report whether the trained model checkpoint and runtime are configured.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object"
+      },
+      "availability": "available",
+      "handler": {
+        "kind": "python",
+        "module": "src.webmcp"
+      }
+    },
+    {
+      "name": "vot_prepare_twilio_consent_response",
+      "mode": "STAGE",
+      "effect": "STAGE",
+      "description": "Prepare a consent-first Twilio response without placing a call.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "sessionRef": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          }
+        },
+        "required": [
+          "sessionRef"
+        ],
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object"
+      },
+      "availability": "available",
+      "handler": {
+        "kind": "python",
+        "module": "src.webmcp"
+      }
+    },
+    {
+      "name": "vot_replay_twilio_media_event",
+      "mode": "EXECUTE",
+      "effect": "EXECUTE",
+      "description": "Replay an approved synthetic media event in the configured local service.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "fixtureRef": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "approval": {
+            "type": "object"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          }
+        },
+        "required": [
+          "fixtureRef",
+          "approval",
+          "idempotencyKey"
+        ],
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object"
+      },
+      "availability": "unavailable",
+      "handler": {
+        "kind": "unavailable",
+        "module": "src.webmcp"
+      },
+      "unavailableReason": "Admitted asset resolver and verified local runtime are not configured."
+    },
+    {
+      "name": "vot_inspect_twilio_review_session",
+      "mode": "READ",
+      "effect": "READ",
+      "description": "Inspect a sanitized local review-session projection.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "sessionRef": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          }
+        },
+        "required": [
+          "sessionRef"
+        ],
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object"
+      },
+      "availability": "available",
+      "handler": {
+        "kind": "python",
+        "module": "src.webmcp"
+      }
+    },
+    {
+      "name": "vot_validate_education_artifact_pointer",
+      "mode": "READ",
+      "effect": "READ",
+      "description": "Validate an opaque education artifact reference.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "artifactRef": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          }
+        },
+        "required": [
+          "artifactRef"
+        ],
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object"
+      },
+      "availability": "available",
+      "handler": {
+        "kind": "python",
+        "module": "src.webmcp"
+      }
+    },
+    {
+      "name": "vot_build_guardian_protection_plan",
+      "mode": "STAGE",
+      "effect": "STAGE",
+      "description": "Stage a defensive media-literacy protection plan.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "scenario": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          }
+        },
+        "required": [
+          "scenario"
+        ],
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object"
+      },
+      "availability": "available",
+      "handler": {
+        "kind": "python",
+        "module": "src.webmcp"
+      }
+    },
+    {
+      "name": "securedme_companion_context",
+      "mode": "READ",
+      "effect": "READ",
+      "description": "Return a sanitized V.O.T specialist projection.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object"
+      },
+      "availability": "available",
+      "handler": {
+        "kind": "python",
+        "module": "src.webmcp"
+      }
+    },
+    {
+      "name": "securedme_qbit_plan_handoff",
+      "mode": "STAGE",
+      "effect": "STAGE",
+      "description": "Prepare a Qbit return proposal without changing progression.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "missionRef": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "summary": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          }
+        },
+        "required": [
+          "missionRef",
+          "summary"
+        ],
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object"
+      },
+      "availability": "available",
+      "handler": {
+        "kind": "python",
+        "module": "src.webmcp"
+      }
+    }
+  ],
+  "boundaries": {
+    "authority": "Human review owns every media decision.",
+    "secrets": "No provider credentials or raw audio are returned.",
+    "externalWrites": "Unavailable execution capabilities fail closed.",
+    "heroProgression": "AlgoQuest alone owns Hero Book progression.",
+    "syntheticClassifications": false,
+    "impersonation": false,
+    "surveillance": false,
+    "rawAudioRetention": false,
+    "liveTelephonyByDefault": false
+  },
+  "theme": {
+    "source": "assets/landing/secureme.ca-product/education/V.O.T Guardian/desing/stitch_v.o.t_guardian_preview_portal/stitch_v.o.t_guardian_preview_portal/tenebris_cyber_safety_logic/DESIGN.md",
+    "sourceStatus": "verified_stitch"
+  }
+}

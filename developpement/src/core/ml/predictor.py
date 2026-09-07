@@ -131,26 +131,10 @@ if TORCH_AVAILABLE and nn:
 
             return logits
 
-    # Define a mock class for when torch is not available
-    class MockCNNLSTMModel:
-        def __init__(self, *args, **kwargs):
-            pass
-
-        def to(self, device):
-            return self
-
-        def eval(self):
-            return self
-
-        def __call__(self, x):
-            # Return random prediction for demo
-            import random
-            return [[random.uniform(0, 1), random.uniform(0, 1)]]
 else:
-    # Define a mock class for when torch is not available
     class CNNLSTMModel:
         def __init__(self, *args, **kwargs):
-            pass
+            raise RuntimeError("PyTorch runtime is unavailable")
 
         def to(self, device):
             return self
@@ -159,9 +143,7 @@ else:
             return self
 
         def __call__(self, x):
-            # Return random prediction for demo
-            import random
-            return [[random.uniform(0, 1), random.uniform(0, 1)]]
+            raise RuntimeError("PyTorch runtime is unavailable")
 
 
 class MLPredictor:
@@ -218,7 +200,7 @@ class MLPredictor:
     def load_model(self):
         """Load the trained model."""
         if not torch:
-            self.logger.warning("PyTorch unavailable; using mock predictions")
+            self.logger.warning("PyTorch unavailable; prediction capability disabled")
             return
 
         try:
@@ -241,7 +223,8 @@ class MLPredictor:
                     "Model file not found: %s",
                     self.config.model_path,
                 )
-                # Keep model with random weights for demonstration
+                self.model = None
+                return
 
             # Move to device and set eval mode
             self.model.to(self.device)
@@ -262,6 +245,9 @@ class MLPredictor:
             Dictionary with prediction results
         """
         start_time = time.time()
+
+        if not torch or not F or self.model is None:
+            raise RuntimeError("trained model runtime is not configured")
 
         try:
             # Convert features to model input format
@@ -311,14 +297,7 @@ class MLPredictor:
 
         except Exception as e:
             self.logger.error(f"Error during prediction: {e}")
-
-            # Return fallback prediction
-            return {
-                'prediction': 'HUMAN',
-                'confidence': 0.5,
-                'error': str(e),
-                'processing_time_ms': (time.time() - start_time) * 1000
-            }
+            raise RuntimeError("voice prediction failed") from e
 
     def _features_to_tensor(self, features: Dict[str, float]):
         """Convert features dictionary to model input tensor."""
@@ -400,7 +379,7 @@ class MLPredictor:
             'prediction_count': self.prediction_count,
             'drift_score': self.drift_score,
             'model_loaded': self.model is not None,
-            'using_gpu': self.device.type == 'cuda'
+            'using_gpu': getattr(self.device, 'type', str(self.device)) == 'cuda'
         }
 
     def retrain_model(

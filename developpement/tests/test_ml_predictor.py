@@ -46,16 +46,12 @@ async def test_predict_high_confidence_ai(monkeypatch):
 
 
 @pytest.mark.anyio
-async def test_predict_fallback_when_model_missing(monkeypatch):
+async def test_predict_fails_closed_when_model_missing(monkeypatch):
     monkeypatch.setattr(MLPredictor, "load_model", lambda self: None)
 
     config = ModelConfig(use_gpu=False, mixed_precision=False)
     predictor = MLPredictor(config=config)
     predictor.model = None
 
-    result = await predictor.predict({})
-
-    assert result["prediction"] == "HUMAN"
-    assert result["confidence"] == pytest.approx(0.5, abs=1e-9)
-    assert "error" in result
-    assert "probabilities" not in result
+    with pytest.raises(RuntimeError, match="trained model runtime is not configured"):
+        await predictor.predict({})

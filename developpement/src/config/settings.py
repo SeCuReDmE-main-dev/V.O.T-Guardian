@@ -25,7 +25,7 @@ class Settings:
     # API Settings
     api_host: str = field(default_factory=lambda: os.getenv('API_HOST', '0.0.0.0'))
     api_port: int = field(default_factory=lambda: int(os.getenv('API_PORT', '8080')))
-    api_secret_key: str = field(default_factory=lambda: os.getenv('API_SECRET_KEY', 'dev-secret-key'))
+    api_secret_key: str = field(default_factory=lambda: os.getenv('API_SECRET_KEY', ''))
 
     # Database Settings
     postgresql_url: str = field(default_factory=lambda: os.getenv('POSTGRESQL_URL', 'postgresql://localhost:5432/vot_guardian'))
@@ -78,9 +78,9 @@ class Settings:
     def _validate_settings(self):
         """Validate that all settings are reasonable."""
         # Validate API settings
-        if not self.api_secret_key or self.api_secret_key == 'dev-secret-key':
+        if not self.api_secret_key:
             import warnings
-            warnings.warn("Using default API secret key - not secure for production!")
+            warnings.warn("API secret key is not configured; protected capabilities remain unavailable")
 
         # Validate port ranges
         if not (1 <= self.api_port <= 65535):
@@ -141,7 +141,7 @@ class Settings:
     def is_production_ready(self) -> bool:
         """Check if settings are suitable for production."""
         checks = [
-            bool(self.api_secret_key and self.api_secret_key != 'dev-secret-key'),
+            bool(self.api_secret_key),
             bool(self.e2b_api_key),
             bool(self.datadog_api_key),
             self.encryption_enabled,
