@@ -20,7 +20,7 @@ MODULES_TO_TEST = [
     "src",
     "src.api.main",
     "src.core.security.tenebris",
-    "src.core.monitoring.datadog_client",
+    "src.core.monitoring.local_telemetry",
     "src.core.e2b.sandbox_manager",
     "src.core.audio.processor",
     "src.core.ml.predictor",
@@ -30,13 +30,12 @@ MODULES_TO_TEST = [
 
 DEPENDENCIES = [
     ("e2b-code-interpreter", "E2B sandbox isolation"),
-    ("datadog-api-client", "Datadog monitoring"),
     ("cryptography", "Encryption for Tenebris"),
 ]
 
 ENV_PLACEHOLDERS = [
     "E2B_API_KEY=placeholder_e2b_key",
-    "DD_API_KEY=placeholder_datadog_key",
+    "SECUREDME_OTEL_ENABLED=false",
     "REDHAT_API_KEY=placeholder_redhat_key",
 ]
 
@@ -44,7 +43,7 @@ REQUIRED_FILES = [
     "src/__init__.py",
     "src/api/main.py",
     "src/core/security/tenebris.py",
-    "src/core/monitoring/datadog_client.py",
+    "src/core/monitoring/local_telemetry.py",
     "src/core/e2b/sandbox_manager.py",
     "src/core/audio/processor.py",
     "src/core/ml/predictor.py",
@@ -243,7 +242,6 @@ def main() -> int:
         print("1. 📝 Copy .env.example to .env")
         print("2. 🔑 Get your API keys:")
         print("   • E2B: https://e2b.dev")
-        print("   • Datadog: https://datadoghq.com")
         print("   • Red Hat: https://developers.redhat.com")
         print("3. 🗄️ Install databases (PostgreSQL, RethinkDB, MindsDB)")
         print("4. 🚀 Run: python -m src.api.main")

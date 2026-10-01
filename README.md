@@ -1,139 +1,59 @@
 # V.O.T. Guardian
 
-<!-- SECUREDME-ZENODO:START -->
-<p align="center">
-  <a href="https://doi.org/10.5281/zenodo.21893197"><img alt="Zenodo DOI: 10.5281/zenodo.21893197" src="https://img.shields.io/badge/Zenodo%20DOI-10.5281%2Fzenodo.21893197-1682D4?style=for-the-badge" /></a>
-</p>
-<!-- SECUREDME-ZENODO:END -->
+![V.O.T. Guardian — SecuredMe Education](docs/assets/repository/readme-banner-2026.png)
 
-<!-- SECUREDME-CPAI-MESH:START -->
-<p align="center">
-  <img alt="CodeProject.AI Server embedded mesh node" src="https://img.shields.io/badge/CodeProject.AI%20Server-Embedded%20Mesh%20Node-1F6FEB?style=for-the-badge" />
-  <img alt="YOLO real local inference validated" src="https://img.shields.io/badge/YOLO-Real%20Local%20Inference-16A34A?style=for-the-badge" />
-</p>
-<!-- SECUREDME-CPAI-MESH:END -->
+[![License SECL-2.0](https://img.shields.io/badge/license-SECL--2.0-6F42FF)](LICENSE)
+[![Pre-alpha](https://img.shields.io/badge/status-pre--alpha-0E7490)](AGENTS.md)
+[![Issues](https://img.shields.io/github/issues/SeCuReDmE-main-dev/V.O.T-Guardian)](https://github.com/SeCuReDmE-main-dev/V.O.T-Guardian/issues)
+[![Main history](https://img.shields.io/github/last-commit/SeCuReDmE-main-dev/V.O.T-Guardian/main)](https://github.com/SeCuReDmE-main-dev/V.O.T-Guardian/commits/main/)
+[![SPONSORED BY E2B FOR STARTUPS](https://img.shields.io/badge/SPONSORED%20BY-E2B%20FOR%20STARTUPS-ff3001?style=for-the-badge&labelColor=black)](https://e2b.dev/startups)
 
-[Embedded CodeProject.AI node operations](infra/codeproject-ai/README.md)
+Study uncertain voice-risk indicators, signal quality and evidence review using synthetic audio.
 
-[![SecuredMe Education Suite public calendar](https://img.shields.io/badge/SecuredMe%20Education%20Suite-public%20calendar%20%7C%20pre--alpha%20%7C%20active%20public%20development-5484ED?style=for-the-badge&logo=googlecalendar&logoColor=white)](https://calendrier.securedme.ca)
+[Public surface](https://vot-guardian.securedme.ca/) · [Tool documentation](https://securedme-main-dev.github.io/securedme-scholarium/en/tools/vot-guardian/) · [Education hub](https://securedme.ca/product/education/)
 
-**Attribution:** Jean-Sebastien Beaulieu · [ORCID 0009-0007-2904-0443](https://orcid.org/0009-0007-2904-0443) · [SecuredMe](https://securedme.ca) · [V.O.T Guardian](https://vot-guardian.securedme.ca)
+**Status:** pre-alpha, active public development. Public pages and a successful local test do not establish a deployed school service. E2B sponsorship recognition is separate from runtime availability and included quota.
 
-<!-- SECUREDME-SUITE-BADGES:START -->
-[![Issues](https://img.shields.io/github/issues/SeCuReDmE-main-dev/V.O.T-Guardian?color=111722)](https://github.com/SeCuReDmE-main-dev/V.O.T-Guardian/issues)
-[![Milestones](https://img.shields.io/badge/milestones-M0--M7-D7263D)](https://github.com/SeCuReDmE-main-dev/V.O.T-Guardian/milestones)
-[![Project Board](https://img.shields.io/badge/project-kanban-5484ED)](https://github.com/users/SeCuReDmE-main-dev/projects/3)
-[![Branch](https://img.shields.io/badge/branch-main-0E7490)](https://github.com/SeCuReDmE-main-dev/V.O.T-Guardian/tree/main)
-<!-- SECUREDME-SUITE-BADGES:END -->
+## How it works
 
-<!-- SECUREDME-STARTUP-SUPPORT:START -->
-<p align="center">
-  <a href="https://e2b.dev/startups">
-    <img alt="Gateway-ready E2B audit lane" src="https://img.shields.io/badge/Gateway--ready-E2B%20audit%20lane-FF8800?style=for-the-badge" />
-  </a>
-  <a href="https://www.datadoghq.com/partner/datadog-for-startups/">
-    <img alt="Gateway-ready Datadog observability" src="https://img.shields.io/badge/Gateway--ready-Datadog%20observability-632CA6?style=for-the-badge&amp;logo=datadog&amp;logoColor=white" />
-  </a>
-</p>
+The development API and Tenebris workflow retain human review and redacted audit metadata. Optional local OTLP transports export only bounded technical counters and durations.
 
-> **Gateway support acknowledgement.** This SecuredMe school tool is gateway-compatible. E2B audit support and Datadog observability are routed through the shared SecuredMe gateway when that lane is configured; this repository does not claim a direct E2B or Datadog runtime dependency by default, and no E2B or Datadog secret is stored in this README.
-<!-- SECUREDME-STARTUP-SUPPORT:END -->
+## Local development
 
-> **Maintainer intake during active finishing week.** This repository is maintained directly on `main` by the SecuredMe maintainer. Public issues are open for bug reports, documentation corrections, security-safe observations, and reproducible feedback, but opening an issue does not promise a response or a delivery date. Pull requests are not accepted during the active code-finishing week; use issues only until this notice is replaced.
-
-
-
-
-## School Authentication And Secret Boundary
-This repository is a small SecuredMe school tool. Official classroom use must not require `.env` files, API keys, raw tokens, or local model secrets. Student and teacher workflows must use Codex/OpenAI or Antigravity/Gemini through browser WebAuth, fingerprinted session approval, and encrypted local session records when authentication is needed.
-
-Both host adapters implement the shared `securedme.education.webauth-template.v1` policy and are auditable through the Gateway. That proves policy compatibility, not a deployed V.O.T. Guardian login. Provider callback, account binding, session expiry, logout, recovery, and accessible browser acceptance remain required before live-login claims.
-
-The reason for excluding generic local AI routes from official school mode is student and teacher safety: education accounts, provider-side account controls, browser login, and governed AI refusal behavior are safer than unguided local model endpoints for classroom cybersecurity and algorithm-building tools.
-
-> **Development status.** This school tool is currently **pre-alpha — active public development**. Public issues remain open for intake, but no response or delivery date is promised. Pull requests are paused during active development.
-
-
-V.O.T. Guardian is a supervised cybersecurity education and fraud-awareness
-project for teaching how voice-risk review systems should be designed with
-privacy, consent, evidence boundaries, and human review.
-
-> **Official school governance.** V.O.T. Guardian is for supervised cybersecurity
-> training and public-interest fraud-awareness education. It is not an attack,
-> impersonation, surveillance-abuse, or criminal automation tool. The maintained
-> classroom route supports Codex/OpenAI or Antigravity/Gemini only. See
-> [SCHOOL_TOOL_GOVERNANCE.md](SCHOOL_TOOL_GOVERNANCE.md) and
-> [AGENTS.md](AGENTS.md).
-
-> **License.** This project uses the Secured Educational Cybersecurity License 2.0 (SECL-2.0). It is provided for defensive education, fraud-awareness, simulation, and supervised cyber training. Offensive workflows, unsafe surveillance, credential theft, fraud, bypass, and criminal automation are not maintained or endorsed by the official school version. See [LICENSE](LICENSE), [NOTICE](NOTICE), [DISCLAIMER](DISCLAIMER), and [SAFETY.md](SAFETY.md).
-> [DISCLAIMER](DISCLAIMER).
-
-## What This Project Is
-
-- A classroom and research scaffold for defensive voice-fraud awareness.
-- A training surface for teenagers, young adults, teachers, and students.
-- A human-review support model for discussing signal quality, consent,
-  uncertainty, and evidence handling.
-- A place to learn how cybersecurity tools should avoid overclaiming,
-  autonomous accusations, and unsafe surveillance.
-- A classroom planning surface for responsible public communication:
-  [Educational Marketing Plan Template](docs/educational_marketing_plan_template.md).
-
-## What This Project Is Not
-
-- Not a production fraud detector.
-- Not a biometric identification system.
-- Not a diagnostic, law-enforcement, compliance, or safety authority.
-- Not a system for impersonation, attack, surveillance abuse, or criminal
-  automation.
-- Not a guarantee of accuracy, latency, throughput, legal compliance, or
-  protection.
-
-## School-Safe Boundary
-
-Any model output, audio analysis, confidence score, or risk label must be treated
-as a review artifact. A human reviewer must inspect the evidence, context,
-consent, privacy posture, and limitations before taking any action.
-
-Preferred output language:
-
-- `review required`
-- `signal quality concern`
-- `uncertain voice-risk indicator`
-- `evidence gap`
-- `human review needed`
-
-Avoid accusation language such as “fraud confirmed”, “impersonator detected”, or
-“attack proven”.
-
-## Repository Notes
-
-The `developpement/` folder contains earlier implementation and research notes.
-Those notes may mention experimental architecture, performance targets, or
-compliance ideas. They are not public claims, not validated benchmarks, and not
-deployment promises.
-
-## Development
-
-Use this repository as a school-safe development exercise:
+Record the checkout and existing changes before editing:
 
 ```powershell
 git status --short --branch
+git rev-parse HEAD
 ```
 
-Run any available project-specific tests only after reviewing the local
-requirements. Do not add secrets, production credentials, real private audio, or
-personal data to the repository.
+Review the source entry points and repository-specific requirements linked below before installing. Optional container, model, API and infrastructure routes require separate availability checks. Do not start external services or copy private environment files into a classroom checkout.
 
-## Attribution
+## Source map
 
-Jean-Sebastien Beaulieu  
-ORCID: https://orcid.org/0009-0007-2904-0443  
-SecuredMe
+- [developpement/src](developpement/src)
+- [developpement/tests](developpement/tests)
+- [developpement/requirements.txt](developpement/requirements.txt)
+- [developpement/observability](developpement/observability)
 
+## Practice exercise
 
+Compare synthetic audio cases, report uncertainty and signal-quality concerns, and specify the evidence needed for a human review.
 
+During an individual course, learners choose suite tools to practice. The eight-week final project is the learner's own tool, submitted by the learner to an eligible hackathon after checking its age, AI, originality and licensing rules.
 
+## Boundaries and privacy
 
+This is an educational pre-alpha, not a fraud detector, biometric identity authority or clinical product. The E2B destruction helper remains a simulation/stub, and a local audit log is not an immutable certification. Dependency maintenance is still in progress.
 
+The official school routes are Codex/OpenAI and Antigravity/Gemini with human review. Never distribute raw tokens, learner data, prompts or private correspondence. No hidden learner analytics are added. Public analytics require explicit consent; general autocapture and session replay remain disabled. Optional local technical telemetry is separate from learner records and product audit history.
 
+See [AGENTS.md](AGENTS.md) and [SCHOOL_TOOL_GOVERNANCE.md](SCHOOL_TOOL_GOVERNANCE.md) for current authority and provider boundaries. Maintainer-authorized maintenance follows repository protections and required reviews. General contribution restrictions remain governed by [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## License, authorship and history
+
+The repository's actual license is [SECL-2.0](LICENSE). Keep the license, attribution, notices and safety boundaries when reusing the code.
+
+Jean-Sebastien Beaulieu · [ORCID 0009-0007-2904-0443](https://orcid.org/0009-0007-2904-0443) · [SecuredMe](https://securedme.ca/)
+
+[README source before curation](docs/archive/README-before-curation-2026-09-30.txt) retains the exact previous text, implementation journals and attribution. It is historical: its old telemetry commands, readiness claims and contribution dates are not current operating instructions. [Presentation history](docs/repository-presentation-history-2026-09-30.md) retains previous badges. [GitHub social image](docs/assets/repository/github-social-preview-2026.jpg) accompanies this README.

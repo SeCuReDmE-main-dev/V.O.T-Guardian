@@ -25,14 +25,6 @@ from typing import Dict, Any, Optional
 from cryptography.fernet import Fernet
 import json
 
-# Import core dependencies (Datadog for audit logging)
-try:
-    from datadog import api as datadog_api
-except ImportError:
-    # Fallback for when datadog main library is not available
-    datadog_api = None
-
-
 @dataclass
 class TenebrisConfig:
     """Configuration for Tenebris Protocol."""
@@ -218,6 +210,8 @@ class TenebrisProtocol:
 
     async def _log_audit_event(self, event_type: str, metadata: Dict[str, Any]):
         """Emit a bounded redacted audit event off the event loop."""
+        if not self.config.audit_trail_enabled:
+            return
         try:
             metadata_json = json.dumps(
                 metadata,
@@ -240,27 +234,21 @@ class TenebrisProtocol:
                 'audit_hash': self._compute_audit_hash(event_type, metadata)
             }
 
-            # Bound the synchronous SDK call and keep it off the event loop.
-            if datadog_api:
-                await asyncio.wait_for(
-                    asyncio.to_thread(
-                        datadog_api.Event.create,
-                        title=f"Tenebris Protocol: {event_type}",
-                        text=json.dumps(audit_entry, separators=(',', ':')),
-                        tags=[
-                            'protocol:tenebris',
-                            'compliance:loi25',
-                            f'event:{event_type.lower()}',
-                            'service:vot-guardian'
-                        ],
-                        alert_type='info'
-                    ),
-                    timeout=0.25,
-                )
+            await asyncio.wait_for(
+                asyncio.to_thread(self._write_audit_entry, audit_entry), timeout=0.25,
+            )
 
         except (Exception, asyncio.TimeoutError) as e:
             self.logger.error(f"Failed to log audit event: {e}")
             # Continue execution - audit logging failure shouldn't break the protocol
+
+    def _write_audit_entry(self, audit_entry: Dict[str, Any]) -> None:
+        """Local redacted audit sink, separate from optional technical metrics.
+
+        The API's PostgreSQL persistence remains the durable product audit.
+        A logger alone is neither immutable storage nor legal certification.
+        """
+        self.logger.info("Tenebris audit: %s", json.dumps(audit_entry, separators=(',', ':')))
 
     def _compute_audit_hash(self, event_type: str, metadata: Dict[str, Any]) -> str:
         """Compute cryptographic hash for audit trail integrity."""

@@ -38,10 +38,9 @@ class Settings:
     e2b_pool_min_size: int = field(default_factory=lambda: int(os.getenv('E2B_POOL_MIN_SIZE', '5')))
     e2b_pool_max_size: int = field(default_factory=lambda: int(os.getenv('E2B_POOL_MAX_SIZE', '50')))
 
-    # Datadog Settings
-    datadog_api_key: str = field(default_factory=lambda: os.getenv('DD_API_KEY', ''))
-    datadog_service: str = field(default_factory=lambda: os.getenv('DD_SERVICE', 'vot-guardian'))
-    datadog_env: str = field(default_factory=lambda: os.getenv('DD_ENV', 'development'))
+    # Optional local telemetry is independent of authentication readiness.
+    otel_enabled: bool = field(default_factory=lambda: os.getenv('SECUREDME_OTEL_ENABLED', '').lower() == 'true')
+    otel_metrics_endpoint: str = field(default_factory=lambda: os.getenv('OTEL_EXPORTER_OTLP_METRICS_ENDPOINT', 'http://127.0.0.1:4318/v1/metrics'))
 
     # Twilio Voice / Media Streams Settings
     twilio_account_sid: str = field(default_factory=lambda: os.getenv('TWILIO_ACCOUNT_SID', ''))
@@ -118,7 +117,7 @@ class Settings:
             'rethinkdb_port': self.rethinkdb_port,
             'mindsdb_url': self.mindsdb_url,
             'e2b_api_key_configured': bool(self.e2b_api_key),
-            'datadog_api_key_configured': bool(self.datadog_api_key),
+            'local_telemetry_enabled': self.otel_enabled,
             'twilio_account_sid_configured': bool(self.twilio_account_sid),
             'twilio_voice_number_configured': bool(self.twilio_voice_number),
             'twilio_public_base_url': self.twilio_public_base_url,
@@ -143,7 +142,6 @@ class Settings:
         checks = [
             bool(self.api_secret_key),
             bool(self.e2b_api_key),
-            bool(self.datadog_api_key),
             self.encryption_enabled,
             self.log_level.upper() in ['WARNING', 'ERROR', 'CRITICAL'],
             self.tenebris_max_time_ms <= 100
@@ -173,12 +171,7 @@ class Settings:
     def get_monitoring_config(self) -> Dict[str, Any]:
         """Get monitoring configuration."""
         return {
-            'datadog': {
-                'api_key': self.datadog_api_key,
-                'service': self.datadog_service,
-                'env': self.datadog_env,
-                'enabled': bool(self.datadog_api_key)
-            },
+            'opentelemetry': {'enabled': self.otel_enabled, 'transport': 'local-otlp-http'},
             'twilio': {
                 'account_sid': self.twilio_account_sid,
                 'voice_number': self.twilio_voice_number,

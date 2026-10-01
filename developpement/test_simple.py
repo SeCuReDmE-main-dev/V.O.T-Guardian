@@ -42,10 +42,10 @@ def test_basic():
         else:
             print("[FAIL] E2B API key placeholder missing")
 
-        if 'DD_API_KEY=placeholder_datadog_key' in content:
-            print("[OK] Datadog API key placeholder found")
+        if 'SECUREDME_OTEL_ENABLED=false' in content:
+            print("[OK] Local telemetry opt-out found")
         else:
-            print("[FAIL] Datadog API key placeholder missing")
+            print("[FAIL] Local telemetry opt-out missing")
 
         if 'REDHAT_API_KEY=placeholder_redhat_key' in content:
             print("[OK] Red Hat API key placeholder found")
@@ -63,10 +63,10 @@ def test_basic():
         else:
             print("[FAIL] E2B dependency missing in requirements.txt")
 
-        if 'datadog-api-client' in content:
-            print("[OK] Datadog dependency in requirements.txt")
+        if 'datadog-api-client' not in content:
+            print("[OK] Cloud monitoring dependency absent")
         else:
-            print("[FAIL] Datadog dependency missing in requirements.txt")
+            print("[FAIL] Cloud monitoring dependency must be removed")
 
         if 'cryptography' in content:
             print("[OK] Cryptography dependency in requirements.txt")
@@ -83,7 +83,6 @@ def test_basic():
         print("1. Copy .env.example to .env")
         print("2. Get API keys from:")
         print("   - E2B: https://e2b.dev")
-        print("   - Datadog: https://datadoghq.com")
         print("   - Red Hat: https://developers.redhat.com/register")
         print("3. Install dependencies: pip install -r requirements.txt")
         print("4. Run: python -m src.api.main")

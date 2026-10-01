@@ -2,11 +2,9 @@
 
 import json
 import logging
-import types
 
 import pytest
 
-from src.core.security import tenebris as tenebris_module
 from src.core.security.tenebris import (
     TenebrisConfig,
     TenebrisProtocol,
@@ -16,24 +14,21 @@ from src.core.security.tenebris import (
 LOGGER = "src.core.security.tenebris"
 
 
-class _DatadogRecorder:
+class _LocalAuditRecorder:
     events = []
 
     class Event:
         @staticmethod
         def create(**payload):
-            _DatadogRecorder.events.append(payload)
+            _LocalAuditRecorder.events.append(payload)
 
 
 @pytest.fixture(autouse=True)
-def reset_datadog_stub(monkeypatch):
-    _DatadogRecorder.events = []
-    monkeypatch.setattr(
-        tenebris_module,
-        "datadog_api",
-        _DatadogRecorder,
-        raising=False,
-    )
+def reset_local_audit_stub(monkeypatch):
+    _LocalAuditRecorder.events = []
+    def record_entry(self, entry):
+        _LocalAuditRecorder.Event.create(title="Tenebris Protocol: " + entry['event_type'], text=json.dumps(entry))
+    monkeypatch.setattr(TenebrisProtocol, "_write_audit_entry", record_entry)
     yield
 
 
@@ -44,12 +39,12 @@ def anyio_backend():
 
 
 def _event_types() -> list[str]:
-    return [payload.get("title", "") for payload in _DatadogRecorder.events]
+    return [payload.get("title", "") for payload in _LocalAuditRecorder.events]
 
 
 def _extract_event_payloads() -> list[dict[str, object]]:
     payloads = []
-    for event in _DatadogRecorder.events:
+    for event in _LocalAuditRecorder.events:
         text = event.get("text", "{}")
         try:
             payloads.append(json.loads(text))
@@ -103,7 +98,7 @@ async def test_cleanup_clears_sandbox_and_keys(encryption_enabled):
 
     purge_events = [
         json.loads(event["text"])
-        for event in _DatadogRecorder.events
+        for event in _LocalAuditRecorder.events
         if event.get("title") == "Tenebris Protocol: TENEBRIS_PURGE_COMPLETE"
     ]
     assert purge_events
@@ -228,17 +223,9 @@ async def test_execute_protocol_violation_emits_audit(monkeypatch):
 async def test_audit_event_failure_logs_error(monkeypatch, caplog):
     caplog.set_level(logging.ERROR, logger=LOGGER)
 
-    class RaisingEvent:
-        @staticmethod
-        def create(**payload):
-            raise RuntimeError("datadog down")
-
-    monkeypatch.setattr(
-        tenebris_module,
-        "datadog_api",
-        types.SimpleNamespace(Event=RaisingEvent),
-        raising=False,
-    )
+    def unavailable_writer(self, entry):
+        raise RuntimeError("local audit sink unavailable")
+    monkeypatch.setattr(TenebrisProtocol, "_write_audit_entry", unavailable_writer)
 
     protocol = TenebrisProtocol()
     await protocol._log_audit_event("TEST", {"foo": "bar"})

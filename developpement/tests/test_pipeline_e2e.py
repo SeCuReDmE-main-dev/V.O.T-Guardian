@@ -53,7 +53,7 @@ class DummyMLPredictor:
         }
 
 
-class DummyDatadog:
+class DummyTelemetry:
     def record_analysis_metrics(self, **kwargs):
         return None
 
@@ -119,13 +119,13 @@ def _build_audio(duration_seconds: float = 0.5) -> bytes:
 def pipeline_client(monkeypatch):
     audio_processor = DummyAudioProcessor()
     ml_predictor = DummyMLPredictor()
-    datadog = DummyDatadog()
+    telemetry = DummyTelemetry()
     db_client = DummyDBClient()
     tenebris = DummyTenebris()
 
     monkeypatch.setattr(api_main, "audio_processor", audio_processor)
     monkeypatch.setattr(api_main, "ml_predictor", ml_predictor)
-    monkeypatch.setattr(api_main, "datadog", datadog)
+    monkeypatch.setattr(api_main, "telemetry", telemetry)
     monkeypatch.setattr(api_main, "db_client", db_client)
     monkeypatch.setattr(api_main, "tenebris", tenebris)
 

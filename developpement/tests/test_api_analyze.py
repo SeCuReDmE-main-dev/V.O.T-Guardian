@@ -45,7 +45,7 @@ class DummyMLPredictor:
         }
 
 
-class DummyDatadog:
+class DummyTelemetry:
     def record_analysis_metrics(self, *args, **kwargs):
         return None
 
@@ -83,7 +83,7 @@ class DummyTenebris:
 def client(monkeypatch):
     monkeypatch.setattr(api_main, "audio_processor", DummyAudioProcessor())
     monkeypatch.setattr(api_main, "ml_predictor", DummyMLPredictor())
-    monkeypatch.setattr(api_main, "datadog", DummyDatadog())
+    monkeypatch.setattr(api_main, "telemetry", DummyTelemetry())
     monkeypatch.setattr(api_main, "tenebris", DummyTenebris())
     monkeypatch.setattr(api_main, "db_client", DummyDBClient())
 

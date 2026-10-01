@@ -1,15 +1,12 @@
 # ==============================================
 # V.O.T. GUARDIAN - CORE DEPENDENCIES
 # ==============================================
-# Only 3 core dependencies as specified
+# Core sandbox dependencies; technical telemetry is optional and local
 
 # 1. E2B Code Interpreter - For secure sandbox isolation
 e2b-code-interpreter==1.0.0
 
-# 2. Datadog API Client - For monitoring and observability
-datadog-api-client==2.16.0
-
-# 3. Cryptography - For Protocole Tenebris encryption
+# 2. Cryptography - For Protocole Tenebris encryption
 cryptography==41.0.7
 
 # ==============================================

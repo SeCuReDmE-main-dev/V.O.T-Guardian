@@ -8,8 +8,7 @@ e2b-code-interpreter==1.0.0
 # Generic E2B SDK (required to launch custom templates)
 e2b
 
-# 2. Datadog API Client - For monitoring and observability
-datadog-api-client==2.16.0
+# Optional local OpenTelemetry uses the standard-library OTLP transport.
 
 # 3. Cryptography - For Protocole Tenebris encryption
 cryptography==41.0.7
